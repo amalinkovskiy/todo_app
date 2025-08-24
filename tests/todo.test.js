@@ -34,7 +34,7 @@ describe('Todo API', () => {
 
   describe('POST /api/todos', () => {
     it('should create a new todo', async () => {
-      const todoData = { name: 'Test todo' };
+      const todoData = { text: 'Test todo' };
 
       const response = await request(app)
         .post('/api/todos')
@@ -42,7 +42,7 @@ describe('Todo API', () => {
         .expect(201);
 
       expect(response.body).toHaveProperty('uuid');
-      expect(response.body.name).toBe('Test todo');
+      expect(response.body.text).toBe('Test todo');
       expect(response.body.completed).toBe(false);
       expect(response.body).toHaveProperty('createdAt');
       expect(response.body).toHaveProperty('updatedAt');
@@ -50,24 +50,24 @@ describe('Todo API', () => {
       createdTodoUuid = response.body.uuid;
     });
 
-    it('should return 400 for empty name', async () => {
+    it('should return 400 for empty text', async () => {
       const response = await request(app)
         .post('/api/todos')
-        .send({ name: '' })
+        .send({ text: '' })
         .expect(400);
 
       expect(response.body.status).toBe('error');
-      expect(response.body.message).toContain('required');
+      expect(response.body.message).toContain('валидации');
     });
 
-    it('should return 400 for missing name', async () => {
+    it('should return 400 for missing text', async () => {
       const response = await request(app)
         .post('/api/todos')
         .send({})
         .expect(400);
 
       expect(response.body.status).toBe('error');
-      expect(response.body.message).toContain('required');
+      expect(response.body.message).toContain('валидации');
     });
   });
 
@@ -80,9 +80,19 @@ describe('Todo API', () => {
   });
 
   describe('GET /api/todos/:uuid', () => {
-    it('should return 404 for non-existent todo', async () => {
+    it('should return 400 for invalid UUID format', async () => {
       const response = await request(app)
-        .get('/api/todos/non-existent-uuid')
+        .get('/api/todos/invalid-uuid')
+        .expect(400);
+
+      expect(response.body.status).toBe('error');
+      expect(response.body.message).toContain('валидации');
+    });
+
+    it('should return 404 for non-existent todo', async () => {
+      const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+      const response = await request(app)
+        .get(`/api/todos/${validUuid}`)
         .expect(404);
 
       expect(response.body.status).toBe('error');
@@ -91,9 +101,19 @@ describe('Todo API', () => {
   });
 
   describe('DELETE /api/todos/:uuid', () => {
-    it('should return 404 for non-existent todo', async () => {
+    it('should return 400 for invalid UUID format', async () => {
       const response = await request(app)
-        .delete('/api/todos/non-existent-uuid')
+        .delete('/api/todos/invalid-uuid')
+        .expect(400);
+
+      expect(response.body.status).toBe('error');
+      expect(response.body.message).toContain('валидации');
+    });
+
+    it('should return 404 for non-existent todo', async () => {
+      const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+      const response = await request(app)
+        .delete(`/api/todos/${validUuid}`)
         .expect(404);
 
       expect(response.body.status).toBe('error');

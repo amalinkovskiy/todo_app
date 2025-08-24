@@ -30,16 +30,9 @@ class TodoController {
 
   async createTodo(req, res, next) {
     try {
-      const { name } = req.body;
-
-      if (!name || typeof name !== 'string' || !name.trim()) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Name is required and must be a non-empty string',
-        });
-      }
-
-      const newTodo = await todoService.createTodo({ name });
+      // Валидация уже произошла в middleware, данные очищены
+      const { text } = req.body;
+      const newTodo = await todoService.createTodo({ text });
       res.status(201).json(newTodo);
     } catch (error) {
       next(error);
@@ -48,18 +41,12 @@ class TodoController {
 
   async updateTodo(req, res, next) {
     try {
+      // Валидация уже произошла в middleware, данные очищены
       const { uuid } = req.params;
-      const { name, completed } = req.body;
-
-      if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Name must be a non-empty string',
-        });
-      }
+      const { text, completed } = req.body;
 
       const updatedTodo = await todoService.updateTodo(uuid, {
-        name,
+        text,
         completed,
       });
 

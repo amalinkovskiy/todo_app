@@ -65,7 +65,7 @@ class TodoService {
   async createTodo(todoData) {
     const newTodo = {
       uuid: uuidv4(),
-      name: todoData.name.trim(),
+      text: todoData.text.trim(),
       completed: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -88,8 +88,8 @@ class TodoService {
     const todo = this.data.todos[todoIndex];
 
     // Update only provided fields
-    if (updateData.name !== undefined) {
-      todo.name = updateData.name.trim();
+    if (updateData.text !== undefined) {
+      todo.text = updateData.text.trim();
     }
     if (updateData.completed !== undefined) {
       todo.completed = Boolean(updateData.completed);

@@ -65,8 +65,8 @@ class TodoApp {
   }
 
   async addTodo() {
-    const name = this.todoInput.value.trim();
-    if (!name) return;
+    const text = this.todoInput.value.trim();
+    if (!text) return;
 
     try {
       const response = await fetch('/api/todos', {
@@ -74,7 +74,7 @@ class TodoApp {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ text }),
       });
 
       if (!response.ok) {
@@ -141,7 +141,7 @@ class TodoApp {
     const todo = this.todos.find((t) => t.uuid === uuid);
     if (!todo) return;
 
-    this.modalTaskName.textContent = todo.name;
+    this.modalTaskName.textContent = todo.text;
     this.deleteModal.style.display = 'block';
     document.body.style.overflow = 'hidden';
   }
@@ -169,8 +169,8 @@ class TodoApp {
     this.renderTodos();
   }
 
-  async saveEdit(uuid, newName) {
-    if (!newName.trim()) return;
+  async saveEdit(uuid, newText) {
+    if (!newText.trim()) return;
 
     try {
       const response = await fetch(`/api/todos/${uuid}`, {
@@ -178,7 +178,7 @@ class TodoApp {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: newName.trim() }),
+        body: JSON.stringify({ text: newText.trim() }),
       });
 
       if (!response.ok) {
@@ -219,7 +219,7 @@ class TodoApp {
     return `
       <li class="todo-item ${todo.completed ? 'completed' : ''}">
         <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} data-uuid="${todo.uuid}">
-        <span class="todo-text">${this.escapeHtml(todo.name)}</span>
+        <span class="todo-text">${this.escapeHtml(todo.text)}</span>
         <div class="todo-actions">
           <button class="edit-btn" data-uuid="${todo.uuid}">Изменить</button>
           <button class="delete-btn" data-uuid="${todo.uuid}">Удалить</button>
@@ -232,7 +232,7 @@ class TodoApp {
     return `
       <li class="todo-item">
         <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} data-uuid="${todo.uuid}">
-        <input type="text" class="edit-input" value="${this.escapeHtml(todo.name)}" data-uuid="${todo.uuid}">
+        <input type="text" class="edit-input" value="${this.escapeHtml(todo.text)}" data-uuid="${todo.uuid}">
         <div class="todo-actions">
           <button class="save-btn" data-uuid="${todo.uuid}">Сохранить</button>
           <button class="cancel-btn" data-uuid="${todo.uuid}">Отмена</button>
