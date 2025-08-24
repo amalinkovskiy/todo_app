@@ -2,6 +2,7 @@ class TodoApp {
     constructor() {
         this.todos = [];
         this.editingIndex = -1;
+        this.deleteIndex = -1; // Индекс задачи для удаления
         
         this.initElements();
         this.bindEvents();
@@ -12,6 +13,12 @@ class TodoApp {
         this.todoInput = document.getElementById('todoInput');
         this.addBtn = document.getElementById('addBtn');
         this.todosList = document.getElementById('todosList');
+        
+        // Элементы модального окна
+        this.deleteModal = document.getElementById('deleteModal');
+        this.modalTaskName = document.getElementById('modalTaskName');
+        this.confirmDeleteBtn = document.getElementById('confirmDelete');
+        this.cancelDeleteBtn = document.getElementById('cancelDelete');
     }
 
     bindEvents() {
@@ -19,6 +26,24 @@ class TodoApp {
         this.todoInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.addTodo();
+            }
+        });
+        
+        // События модального окна
+        this.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
+        this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
+        
+        // Закрытие модального окна при клике вне его
+        this.deleteModal.addEventListener('click', (e) => {
+            if (e.target === this.deleteModal) {
+                this.closeDeleteModal();
+            }
+        });
+        
+        // Закрытие модального окна при нажатии Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.deleteModal.style.display === 'block') {
+                this.closeDeleteModal();
             }
         });
     }
@@ -89,6 +114,27 @@ class TodoApp {
             }
         } catch (error) {
             console.error('Error deleting todo:', error);
+        }
+    }
+
+    showDeleteModal(index) {
+        this.deleteIndex = index;
+        const todo = this.todos[index];
+        this.modalTaskName.textContent = todo.name;
+        this.deleteModal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Отключаем прокрутку фона
+    }
+
+    closeDeleteModal() {
+        this.deleteModal.style.display = 'none';
+        this.deleteIndex = -1;
+        document.body.style.overflow = 'auto'; // Включаем прокрутку обратно
+    }
+
+    async confirmDelete() {
+        if (this.deleteIndex !== -1) {
+            await this.deleteTodo(this.deleteIndex);
+            this.closeDeleteModal();
         }
     }
 
@@ -203,9 +249,7 @@ class TodoApp {
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const index = parseInt(e.target.dataset.index);
-                if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
-                    this.deleteTodo(index);
-                }
+                this.showDeleteModal(index);
             });
         });
 

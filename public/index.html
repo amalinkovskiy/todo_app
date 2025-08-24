@@ -20,6 +20,19 @@
         </div>
     </div>
 
+    <!-- Модальное окно для подтверждения удаления -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <h3>Подтверждение удаления</h3>
+            <p>Вы уверены, что хотите удалить эту задачу?</p>
+            <div class="modal-task-name" id="modalTaskName"></div>
+            <div class="modal-buttons">
+                <button id="confirmDelete" class="confirm-btn">Удалить</button>
+                <button id="cancelDelete" class="cancel-btn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
