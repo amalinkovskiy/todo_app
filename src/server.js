@@ -24,7 +24,13 @@ app.get('/', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
-const startServer = () => {
+const startServer = async () => {
+  // Initialize the database service when server starts (but not during tests)
+  if (process.env.NODE_ENV !== 'test') {
+    const todoService = require('./services/todo.service');
+    await todoService.init();
+  }
+  
   app.listen(config.port, () => {
     console.log(`Server running on http://localhost:${config.port}`);
     console.log(`Environment: ${config.nodeEnv}`);

@@ -5,12 +5,16 @@ const config = require('../config');
 
 class TodoService {
   constructor() {
-    this.dbPath = path.resolve(config.dbFile);
+    this.dbPath = null;
     this.data = { todos: [] };
-    this.init();
+    this.initialized = false;
   }
 
   async init() {
+    // Recalculate dbPath each time to pick up environment changes
+    const config = require('../config');
+    this.dbPath = path.resolve(config.dbFile);
+    
     try {
       // Ensure directory exists
       const dir = path.dirname(this.dbPath);
@@ -24,6 +28,8 @@ class TodoService {
         // File doesn't exist or is invalid, create new one
         await this.write();
       }
+      
+      this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize database:', error);
       throw error;
@@ -40,6 +46,9 @@ class TodoService {
   }
 
   async read() {
+    if (!this.initialized) {
+      await this.init();
+    }
     try {
       const fileContent = await fs.readFile(this.dbPath, 'utf8');
       this.data = JSON.parse(fileContent);
@@ -50,6 +59,9 @@ class TodoService {
   }
 
   async getAllTodos() {
+    if (!this.initialized) {
+      await this.init();
+    }
     await this.read();
     return this.data.todos.map(({ uuid, ...todo }) => ({
       ...todo,
@@ -58,11 +70,17 @@ class TodoService {
   }
 
   async getTodoByUuid(uuid) {
+    if (!this.initialized) {
+      await this.init();
+    }
     await this.read();
     return this.data.todos.find((todo) => todo.uuid === uuid);
   }
 
   async createTodo(todoData) {
+    if (!this.initialized) {
+      await this.init();
+    }
     const newTodo = {
       uuid: uuidv4(),
       text: todoData.text.trim(),
@@ -78,6 +96,9 @@ class TodoService {
   }
 
   async updateTodo(uuid, updateData) {
+    if (!this.initialized) {
+      await this.init();
+    }
     await this.read();
     const todoIndex = this.data.todos.findIndex((t) => t.uuid === uuid);
 
@@ -102,6 +123,9 @@ class TodoService {
   }
 
   async deleteTodo(uuid) {
+    if (!this.initialized) {
+      await this.init();
+    }
     await this.read();
     const todoIndex = this.data.todos.findIndex((t) => t.uuid === uuid);
 

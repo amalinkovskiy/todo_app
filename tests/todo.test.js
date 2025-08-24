@@ -1,15 +1,17 @@
 const request = require('supertest');
 const fs = require('fs').promises;
 const path = require('path');
-const app = require('../src/server');
 
 describe('Todo API', () => {
+  let app;
   let createdTodoUuid;
   const testDbPath = './data/test-todos.json';
 
   beforeAll(async () => {
-    // Set test database path
+    // Set test database path before requiring the server
     process.env.DB_FILE = testDbPath;
+    // Require the app only after setting the environment variable
+    app = require('../src/server');
   });
 
   beforeEach(async () => {
@@ -18,6 +20,10 @@ describe('Todo API', () => {
       const testData = { todos: [] };
       await fs.mkdir(path.dirname(testDbPath), { recursive: true });
       await fs.writeFile(testDbPath, JSON.stringify(testData, null, 2));
+      
+      // Force service to reload the data
+      const todoService = require('../src/services/todo.service');
+      await todoService.init();
     } catch (error) {
       console.error('Failed to setup test database:', error);
     }
