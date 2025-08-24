@@ -14,11 +14,11 @@ class TodoController {
     try {
       const { uuid } = req.params;
       const todo = await todoService.getTodoByUuid(uuid);
-      
+
       if (!todo) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           status: 'error',
-          message: 'Todo not found' 
+          message: 'Todo not found',
         });
       }
 
@@ -31,11 +31,11 @@ class TodoController {
   async createTodo(req, res, next) {
     try {
       const { name } = req.body;
-      
+
       if (!name || typeof name !== 'string' || !name.trim()) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           status: 'error',
-          message: 'Name is required and must be a non-empty string' 
+          message: 'Name is required and must be a non-empty string',
         });
       }
 
@@ -50,20 +50,23 @@ class TodoController {
     try {
       const { uuid } = req.params;
       const { name, completed } = req.body;
-      
+
       if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           status: 'error',
-          message: 'Name must be a non-empty string' 
+          message: 'Name must be a non-empty string',
         });
       }
 
-      const updatedTodo = await todoService.updateTodo(uuid, { name, completed });
-      
+      const updatedTodo = await todoService.updateTodo(uuid, {
+        name,
+        completed,
+      });
+
       if (!updatedTodo) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           status: 'error',
-          message: 'Todo not found' 
+          message: 'Todo not found',
         });
       }
 
@@ -77,11 +80,11 @@ class TodoController {
     try {
       const { uuid } = req.params;
       const deleted = await todoService.deleteTodo(uuid);
-      
+
       if (!deleted) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           status: 'error',
-          message: 'Todo not found' 
+          message: 'Todo not found',
         });
       }
 

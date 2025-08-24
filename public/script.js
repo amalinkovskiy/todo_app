@@ -3,7 +3,7 @@ class TodoApp {
     this.todos = [];
     this.editingUuid = null;
     this.deleteUuid = null;
-    
+
     this.initElements();
     this.bindEvents();
     this.loadTodos();
@@ -13,7 +13,7 @@ class TodoApp {
     this.todoInput = document.getElementById('todoInput');
     this.addBtn = document.getElementById('addBtn');
     this.todosList = document.getElementById('todosList');
-    
+
     // Элементы модального окна
     this.deleteModal = document.getElementById('deleteModal');
     this.modalTaskName = document.getElementById('modalTaskName');
@@ -28,18 +28,20 @@ class TodoApp {
         this.addTodo();
       }
     });
-    
+
     // События модального окна
     this.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
-    this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
-    
+    this.cancelDeleteBtn.addEventListener('click', () =>
+      this.closeDeleteModal()
+    );
+
     // Закрытие модального окна при клике вне его
     this.deleteModal.addEventListener('click', (e) => {
       if (e.target === this.deleteModal) {
         this.closeDeleteModal();
       }
     });
-    
+
     // Закрытие модального окна при нажатии Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.deleteModal.style.display === 'block') {
@@ -90,9 +92,9 @@ class TodoApp {
   }
 
   async toggleTodo(uuid) {
-    const todo = this.todos.find(t => t.uuid === uuid);
+    const todo = this.todos.find((t) => t.uuid === uuid);
     if (!todo) return;
-    
+
     try {
       const response = await fetch(`/api/todos/${uuid}`, {
         method: 'PATCH',
@@ -107,7 +109,7 @@ class TodoApp {
       }
 
       const updatedTodo = await response.json();
-      const todoIndex = this.todos.findIndex(t => t.uuid === uuid);
+      const todoIndex = this.todos.findIndex((t) => t.uuid === uuid);
       this.todos[todoIndex] = updatedTodo;
       this.renderTodos();
     } catch (error) {
@@ -126,7 +128,7 @@ class TodoApp {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      this.todos = this.todos.filter(t => t.uuid !== uuid);
+      this.todos = this.todos.filter((t) => t.uuid !== uuid);
       this.renderTodos();
     } catch (error) {
       console.error('Error deleting todo:', error);
@@ -136,9 +138,9 @@ class TodoApp {
 
   showDeleteModal(uuid) {
     this.deleteUuid = uuid;
-    const todo = this.todos.find(t => t.uuid === uuid);
+    const todo = this.todos.find((t) => t.uuid === uuid);
     if (!todo) return;
-    
+
     this.modalTaskName.textContent = todo.name;
     this.deleteModal.style.display = 'block';
     document.body.style.overflow = 'hidden';
@@ -169,7 +171,7 @@ class TodoApp {
 
   async saveEdit(uuid, newName) {
     if (!newName.trim()) return;
-    
+
     try {
       const response = await fetch(`/api/todos/${uuid}`, {
         method: 'PATCH',
@@ -184,7 +186,7 @@ class TodoApp {
       }
 
       const updatedTodo = await response.json();
-      const todoIndex = this.todos.findIndex(t => t.uuid === uuid);
+      const todoIndex = this.todos.findIndex((t) => t.uuid === uuid);
       this.todos[todoIndex] = updatedTodo;
       this.editingUuid = null;
       this.renderTodos();
@@ -196,16 +198,19 @@ class TodoApp {
 
   renderTodos() {
     if (this.todos.length === 0) {
-      this.todosList.innerHTML = '<li class="empty-state">Задач пока нет. Добавьте первую!</li>';
+      this.todosList.innerHTML =
+        '<li class="empty-state">Задач пока нет. Добавьте первую!</li>';
       return;
     }
 
-    this.todosList.innerHTML = this.todos.map((todo) => {
-      if (this.editingUuid === todo.uuid) {
-        return this.renderEditTodo(todo);
-      }
-      return this.renderTodo(todo);
-    }).join('');
+    this.todosList.innerHTML = this.todos
+      .map((todo) => {
+        if (this.editingUuid === todo.uuid) {
+          return this.renderEditTodo(todo);
+        }
+        return this.renderTodo(todo);
+      })
+      .join('');
 
     this.bindTodoEvents();
   }
@@ -238,7 +243,7 @@ class TodoApp {
 
   bindTodoEvents() {
     // Чекбоксы
-    document.querySelectorAll('.todo-checkbox').forEach(checkbox => {
+    document.querySelectorAll('.todo-checkbox').forEach((checkbox) => {
       checkbox.addEventListener('change', (e) => {
         const uuid = e.target.dataset.uuid;
         this.toggleTodo(uuid);
@@ -246,7 +251,7 @@ class TodoApp {
     });
 
     // Кнопки редактирования
-    document.querySelectorAll('.edit-btn').forEach(btn => {
+    document.querySelectorAll('.edit-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const uuid = e.target.dataset.uuid;
         this.startEdit(uuid);
@@ -254,7 +259,7 @@ class TodoApp {
     });
 
     // Кнопки удаления
-    document.querySelectorAll('.delete-btn').forEach(btn => {
+    document.querySelectorAll('.delete-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const uuid = e.target.dataset.uuid;
         this.showDeleteModal(uuid);
@@ -262,23 +267,25 @@ class TodoApp {
     });
 
     // Кнопки сохранения
-    document.querySelectorAll('.save-btn').forEach(btn => {
+    document.querySelectorAll('.save-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const uuid = e.target.dataset.uuid;
-        const input = document.querySelector(`.edit-input[data-uuid="${uuid}"]`);
+        const input = document.querySelector(
+          `.edit-input[data-uuid="${uuid}"]`
+        );
         this.saveEdit(uuid, input.value);
       });
     });
 
     // Кнопки отмены
-    document.querySelectorAll('.cancel-btn').forEach(btn => {
+    document.querySelectorAll('.cancel-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         this.cancelEdit();
       });
     });
 
     // Enter в поле редактирования
-    document.querySelectorAll('.edit-input').forEach(input => {
+    document.querySelectorAll('.edit-input').forEach((input) => {
       input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
           const uuid = e.target.dataset.uuid;

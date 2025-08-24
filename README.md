@@ -13,30 +13,37 @@
 ## Установка и запуск
 
 ### 1. Установите Node.js
+
 Скачайте и установите Node.js с официального сайта: https://nodejs.org/
 
 ### 2. Установите зависимости
+
 ```bash
 npm install
 ```
 
 ### 3. Запустите сервер
+
 ```bash
 npm start
 ```
 
 Или для разработки с автоперезапуском:
+
 ```bash
 npm run dev
 ```
 
 ### 4. Откройте приложение
+
 Перейдите в браузере по адресу: http://localhost:3000
 
 ## API Endpoints
 
 ### GET /api/todos
+
 Получить все задачи
+
 ```json
 [
   {
@@ -47,7 +54,9 @@ npm run dev
 ```
 
 ### POST /api/todos
+
 Создать новую задачу
+
 ```json
 {
   "name": "Новая задача"
@@ -55,7 +64,9 @@ npm run dev
 ```
 
 ### GET /api/todos/:uuid
+
 Получить задачу по UUID
+
 ```json
 {
   "name": "Купить молоко",
@@ -64,7 +75,9 @@ npm run dev
 ```
 
 ### PUT /api/todos/:uuid
+
 Полное обновление задачи
+
 ```json
 {
   "name": "Обновленное название",
@@ -73,7 +86,9 @@ npm run dev
 ```
 
 ### PATCH /api/todos/:uuid
+
 Частичное обновление задачи
+
 ```json
 {
   "completed": true
@@ -81,6 +96,7 @@ npm run dev
 ```
 
 ### DELETE /api/todos/:uuid
+
 Удалить задачу
 
 ## Структура проекта

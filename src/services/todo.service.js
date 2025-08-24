@@ -1,25 +1,28 @@
-const { Low } = require('lowdb');
-const { JSONFile } = require('lowdb/node');
+const fs = require('fs').promises;
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const config = require('../config');
 
 class TodoService {
   constructor() {
-    this.db = null;
+    this.dbPath = path.resolve(config.dbFile);
+    this.data = { todos: [] };
     this.init();
   }
 
   async init() {
     try {
-      // Initialize the database with default data
-      const adapter = new JSONFile(config.dbFile);
-      this.db = new Low(adapter, { todos: [] });
-      await this.db.read();
-      
-      // If file doesn't exist, write default data
-      if (this.db.data === null) {
-        this.db.data = { todos: [] };
-        await this.db.write();
+      // Ensure directory exists
+      const dir = path.dirname(this.dbPath);
+      await fs.mkdir(dir, { recursive: true });
+
+      // Try to read existing file
+      try {
+        const fileContent = await fs.readFile(this.dbPath, 'utf8');
+        this.data = JSON.parse(fileContent);
+      } catch (error) {
+        // File doesn't exist or is invalid, create new one
+        await this.write();
       }
     } catch (error) {
       console.error('Failed to initialize database:', error);
@@ -27,17 +30,36 @@ class TodoService {
     }
   }
 
+  async write() {
+    try {
+      await fs.writeFile(this.dbPath, JSON.stringify(this.data, null, 2));
+    } catch (error) {
+      console.error('Failed to write to database:', error);
+      throw error;
+    }
+  }
+
+  async read() {
+    try {
+      const fileContent = await fs.readFile(this.dbPath, 'utf8');
+      this.data = JSON.parse(fileContent);
+    } catch (error) {
+      // If file doesn't exist, keep current data
+      console.warn('Could not read database file, using current data');
+    }
+  }
+
   async getAllTodos() {
-    await this.db.read();
-    return this.db.data.todos.map(({ uuid, ...todo }) => ({
+    await this.read();
+    return this.data.todos.map(({ uuid, ...todo }) => ({
       ...todo,
       uuid, // Now we include UUID in the response
     }));
   }
 
   async getTodoByUuid(uuid) {
-    await this.db.read();
-    return this.db.data.todos.find((todo) => todo.uuid === uuid);
+    await this.read();
+    return this.data.todos.find((todo) => todo.uuid === uuid);
   }
 
   async createTodo(todoData) {
@@ -49,22 +71,22 @@ class TodoService {
       updatedAt: new Date().toISOString(),
     };
 
-    this.db.data.todos.push(newTodo);
-    await this.db.write();
+    this.data.todos.push(newTodo);
+    await this.write();
 
     return newTodo;
   }
 
   async updateTodo(uuid, updateData) {
-    await this.db.read();
-    const todoIndex = this.db.data.todos.findIndex((t) => t.uuid === uuid);
-    
+    await this.read();
+    const todoIndex = this.data.todos.findIndex((t) => t.uuid === uuid);
+
     if (todoIndex === -1) {
       return null;
     }
 
-    const todo = this.db.data.todos[todoIndex];
-    
+    const todo = this.data.todos[todoIndex];
+
     // Update only provided fields
     if (updateData.name !== undefined) {
       todo.name = updateData.name.trim();
@@ -72,23 +94,23 @@ class TodoService {
     if (updateData.completed !== undefined) {
       todo.completed = Boolean(updateData.completed);
     }
-    
+
     todo.updatedAt = new Date().toISOString();
-    
-    await this.db.write();
+
+    await this.write();
     return todo;
   }
 
   async deleteTodo(uuid) {
-    await this.db.read();
-    const todoIndex = this.db.data.todos.findIndex((t) => t.uuid === uuid);
-    
+    await this.read();
+    const todoIndex = this.data.todos.findIndex((t) => t.uuid === uuid);
+
     if (todoIndex === -1) {
       return false;
     }
 
-    this.db.data.todos.splice(todoIndex, 1);
-    await this.db.write();
+    this.data.todos.splice(todoIndex, 1);
+    await this.write();
     return true;
   }
 }
