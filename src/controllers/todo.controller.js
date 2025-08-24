@@ -65,6 +65,7 @@ class TodoController {
 
   async deleteTodo(req, res, next) {
     try {
+      // Валидация уже произошла в middleware, данные очищены
       const { uuid } = req.params;
       const deleted = await todoService.deleteTodo(uuid);
 
@@ -75,6 +76,15 @@ class TodoController {
         });
       }
 
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async clearAllTodos(req, res, next) {
+    try {
+      await todoService.clearAllTodos();
       res.status(204).send();
     } catch (error) {
       next(error);

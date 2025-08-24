@@ -40,6 +40,11 @@ router.patch('/:uuid',
   todoController.updateTodo
 );
 
+// DELETE all todos (only for testing) - должен быть ДО dynamic route /:uuid
+if (process.env.NODE_ENV === 'test') {
+  router.delete('/clear-all', todoController.clearAllTodos);
+}
+
 // DELETE todo by uuid
 router.delete('/:uuid', 
   validateParams(Joi.object({ uuid: uuidSchema })),

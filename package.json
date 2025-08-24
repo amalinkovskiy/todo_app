@@ -11,6 +11,11 @@
     "format": "prettier --write .",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:ui": "playwright test",
+    "test:ui:headed": "playwright test --headed",
+    "test:ui:debug": "playwright test --debug",
+    "test:ui:report": "playwright show-report",
+    "test:all": "npm run test && npm run test:ui",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -22,6 +27,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "eslint": "^9.34.0",
     "husky": "^9.1.7",
     "jest": "^30.0.5",

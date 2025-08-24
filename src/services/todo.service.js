@@ -137,6 +137,14 @@ class TodoService {
     await this.write();
     return true;
   }
+
+  async clearAllTodos() {
+    if (!this.initialized) {
+      await this.init();
+    }
+    this.data.todos = [];
+    await this.write();
+  }
 }
 
 module.exports = new TodoService();
