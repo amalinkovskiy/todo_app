@@ -292,6 +292,13 @@ class TodoApp {
           this.saveEdit(uuid, e.target.value);
         }
       });
+      
+      // Escape для отмены редактирования
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.cancelEdit();
+        }
+      });
     });
   }
 

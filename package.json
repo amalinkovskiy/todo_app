@@ -16,6 +16,11 @@
     "test:ui:debug": "playwright test --debug",
     "test:ui:report": "playwright show-report",
     "test:all": "npm run test && npm run test:ui",
+    "mcp:start": "node scripts/playwright-mcp-helper.js start-mcp",
+    "mcp:create": "node scripts/playwright-mcp-helper.js create-test",
+    "mcp:analyze": "node scripts/playwright-mcp-helper.js analyze",
+    "mcp:coverage": "node scripts/playwright-mcp-helper.js coverage",
+    "mcp:help": "node scripts/playwright-mcp-helper.js help",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -27,6 +32,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.35",
     "@playwright/test": "^1.55.0",
     "eslint": "^9.34.0",
     "husky": "^9.1.7",

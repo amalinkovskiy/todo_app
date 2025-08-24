@@ -15,6 +15,12 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // Routes
 app.use('/api/todos', todoRoutes);
 
+// Test routes (only in test environment)
+if (process.env.NODE_ENV === 'test') {
+  const testRoutes = require('./api/test.routes');
+  app.use('/api/test', testRoutes);
+}
+
 // Serve frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));

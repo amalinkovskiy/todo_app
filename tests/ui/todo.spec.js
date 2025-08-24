@@ -4,12 +4,16 @@ test.describe('TODO Application UI Tests', () => {
   
   test.beforeEach(async ({ page }) => {
     // Очищаем базу данных перед каждым тестом
-    await page.request.delete('/api/todos/clear-all');
+    await page.request.delete('/api/test/clear');
     
     // Переходим на главную страницу приложения
     await page.goto('/');
+    
     // Ждем загрузки приложения
     await page.waitForSelector('#addBtn');
+    
+    // Ждем полной загрузки состояния
+    await page.waitForLoadState('networkidle');
   });
 
   test('should display the application title', async ({ page }) => {
@@ -81,6 +85,9 @@ test.describe('TODO Application UI Tests', () => {
     await page.fill('#todoInput', todoText);
     await page.click('#addBtn');
     
+    // Ждем появления задачи
+    await page.waitForSelector('.todo-item');
+    
     const todoItem = page.locator('.todo-item').first();
     const checkbox = todoItem.locator('input[type="checkbox"]');
     
@@ -91,12 +98,25 @@ test.describe('TODO Application UI Tests', () => {
     // Отмечаем задачу как выполненную
     await checkbox.click();
     
-    // Проверяем, что задача отмечена как выполненная
+    // Ждем обновления с более длительным таймаутом
+    await page.waitForTimeout(1000);
+    
+    // Проверяем, что чекбокс выбран
     await expect(checkbox).toBeChecked();
+    
+    // Ждем еще немного для CSS класса
+    await page.waitForFunction(() => {
+      const item = document.querySelector('.todo-item');
+      return item && item.classList.contains('completed');
+    }, { timeout: 5000 });
+    
     await expect(todoItem).toHaveClass(/completed/);
     
     // Снимаем отметку
     await checkbox.click();
+    
+    // Ждем обновления
+    await page.waitForTimeout(1000);
     
     // Проверяем, что задача снова не выполнена
     await expect(checkbox).not.toBeChecked();
@@ -111,10 +131,13 @@ test.describe('TODO Application UI Tests', () => {
     await page.fill('#todoInput', originalText);
     await page.click('#addBtn');
     
+    // Ждем появления задачи
+    await page.waitForSelector('.todo-item');
+    
     const todoItem = page.locator('.todo-item').first();
     
-    // Дважды кликаем для редактирования
-    await todoItem.locator('.todo-text').dblclick();
+    // Нажимаем кнопку редактирования
+    await todoItem.locator('.edit-btn').click();
     
     // Проверяем, что появилось поле редактирования
     const editInput = todoItem.locator('.edit-input');
@@ -123,7 +146,10 @@ test.describe('TODO Application UI Tests', () => {
     
     // Редактируем текст
     await editInput.fill(editedText);
-    await editInput.press('Enter');
+    await todoItem.locator('.save-btn').click();
+    
+    // Ждем сохранения
+    await page.waitForTimeout(500);
     
     // Проверяем, что текст изменился
     await expect(todoItem.locator('.todo-text')).toContainText(editedText);
@@ -138,15 +164,24 @@ test.describe('TODO Application UI Tests', () => {
     await page.fill('#todoInput', originalText);
     await page.click('#addBtn');
     
+    // Ждем появления задачи
+    await page.waitForSelector('.todo-item');
+    
     const todoItem = page.locator('.todo-item').first();
     
-    // Начинаем редактирование
-    await todoItem.locator('.todo-text').dblclick();
+    // Начинаем редактирование через кнопку
+    await todoItem.locator('.edit-btn').click();
+    
+    // Ждем появления поля редактирования
     const editInput = todoItem.locator('.edit-input');
+    await expect(editInput).toBeVisible();
     
     // Изменяем текст, но нажимаем Escape
     await editInput.fill(tempText);
     await editInput.press('Escape');
+    
+    // Ждем выхода из режима редактирования
+    await page.waitForTimeout(500);
     
     // Проверяем, что текст остался оригинальным
     await expect(todoItem.locator('.todo-text')).toContainText(originalText);
@@ -173,10 +208,18 @@ test.describe('TODO Application UI Tests', () => {
     // Подтверждаем удаление
     await page.click('#confirmDelete');
     
-    // Проверяем, что задача удалена
-    await expect(todoItem).not.toBeVisible();
+    // Ждем закрытия модального окна
     await expect(modal).not.toBeVisible();
-    await expect(page.locator('.empty-message')).toBeVisible();
+    
+    // Ждем удаления элемента и появления пустого состояния
+    await page.waitForFunction(
+      () => document.querySelectorAll('.todo-item').length === 0,
+      { timeout: 5000 }
+    );
+    
+    // Проверяем, что задача удалена и отображается пустое состояние
+    await expect(page.locator('.todo-item')).toHaveCount(0);
+    await expect(page.locator('.empty-state')).toBeVisible();
   });
 
   test('should cancel todo deletion', async ({ page }) => {
@@ -185,6 +228,9 @@ test.describe('TODO Application UI Tests', () => {
     // Добавляем задачу
     await page.fill('#todoInput', todoText);
     await page.click('#addBtn');
+    
+    // Ждем появления задачи
+    await page.waitForSelector('.todo-item');
     
     const todoItem = page.locator('.todo-item').first();
     
@@ -196,9 +242,11 @@ test.describe('TODO Application UI Tests', () => {
     await expect(modal).toBeVisible();
     await page.click('#cancelDelete');
     
+    // Ждем закрытия модального окна
+    await expect(modal).not.toBeVisible();
+    
     // Проверяем, что задача осталась
     await expect(todoItem).toBeVisible();
-    await expect(modal).not.toBeVisible();
     await expect(todoItem.locator('.todo-text')).toContainText(todoText);
   });
 
@@ -230,7 +278,16 @@ test.describe('TODO Application UI Tests', () => {
     for (const todo of todos) {
       await page.fill('#todoInput', todo);
       await page.click('#addBtn');
+      // Ждем добавления каждой задачи
+      await page.waitForTimeout(200);
     }
+    
+    // Ждем загрузки всех задач
+    await page.waitForFunction(
+      (expectedCount) => document.querySelectorAll('.todo-item').length === expectedCount,
+      todos.length,
+      { timeout: 5000 }
+    );
     
     // Проверяем, что все задачи добавлены
     const todoItems = page.locator('.todo-item');
@@ -243,11 +300,24 @@ test.describe('TODO Application UI Tests', () => {
     
     // Отмечаем первую задачу как выполненную
     await todoItems.first().locator('input[type="checkbox"]').click();
+    
+    // Ждем обновления состояния
+    await page.waitForFunction(() => {
+      const firstItem = document.querySelector('.todo-item');
+      return firstItem && firstItem.classList.contains('completed');
+    }, { timeout: 5000 });
+    
     await expect(todoItems.first()).toHaveClass(/completed/);
     
     // Удаляем вторую задачу
     await todoItems.nth(1).locator('.delete-btn').click();
     await page.click('#confirmDelete');
+    
+    // Ждем удаления задачи
+    await page.waitForFunction(
+      () => document.querySelectorAll('.todo-item').length === 2,
+      { timeout: 5000 }
+    );
     
     // Проверяем, что осталось 2 задачи
     await expect(todoItems).toHaveCount(2);

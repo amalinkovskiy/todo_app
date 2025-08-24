@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp"
+      ],
+      "options": {
+        "baseUrl": "http://localhost:3001",
+        "testDirPattern": "tests/ui/**/*.spec.js"
+      }
+    }
+  }
+}
