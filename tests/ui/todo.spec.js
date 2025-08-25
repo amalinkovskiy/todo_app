@@ -1,10 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { TodoApiHelper } from '../helpers/api-helpers.js';
 
 test.describe('TODO Application UI Tests', () => {
+  let apiHelper;
   
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    // Инициализируем API helper для подготовки данных
+    apiHelper = new TodoApiHelper(request);
+    
     // Очищаем базу данных перед каждым тестом
-    await page.request.delete('/api/test/clear');
+    await apiHelper.clearAllTodos();
     
     // Переходим на главную страницу приложения
     await page.goto('/');
@@ -321,5 +326,61 @@ test.describe('TODO Application UI Tests', () => {
     
     // Проверяем, что осталось 2 задачи
     await expect(todoItems).toHaveCount(2);
+  });
+
+  test('should display pre-created todos from API', async ({ page }) => {
+    // Создаем задачи через API перед загрузкой страницы
+    await apiHelper.createTodo('API созданная задача 1');
+    await apiHelper.createTodo('API созданная задача 2', true); // выполненная
+    await apiHelper.createTodo('API созданная задача 3');
+    
+    // Перезагружаем страницу для получения данных с сервера
+    await page.reload();
+    await page.waitForSelector('.todo-item');
+    
+    // Проверяем, что задачи отображаются
+    const todoItems = page.locator('.todo-item');
+    await expect(todoItems).toHaveCount(3);
+    
+    // Проверяем, что вторая задача помечена как выполненная
+    await expect(todoItems.nth(1)).toHaveClass(/completed/);
+    await expect(todoItems.nth(1).locator('input[type="checkbox"]')).toBeChecked();
+    
+    // Проверяем тексты задач
+    await expect(todoItems.nth(0).locator('.todo-text')).toContainText('API созданная задача 1');
+    await expect(todoItems.nth(1).locator('.todo-text')).toContainText('API созданная задача 2');
+    await expect(todoItems.nth(2).locator('.todo-text')).toContainText('API созданная задача 3');
+  });
+
+  test('should integrate UI actions with API state', async ({ page }) => {
+    // Создаем задачу через API
+    const apiTodo = await apiHelper.createTodo('Задача из API');
+    
+    // Перезагружаем страницу
+    await page.reload();
+    await page.waitForSelector('.todo-item');
+    
+    // Проверяем, что задача отображается
+    const todoItem = page.locator('.todo-item').first();
+    await expect(todoItem.locator('.todo-text')).toContainText('Задача из API');
+    
+    // Изменяем задачу через UI
+    await todoItem.locator('.edit-btn').click();
+    const editInput = todoItem.locator('.edit-input');
+    await editInput.fill('Измененная через UI задача');
+    await todoItem.locator('.save-btn').click();
+    
+    // Проверяем изменения через API
+    const updatedTodo = await apiHelper.getTodoByUuid(apiTodo.uuid);
+    expect(updatedTodo.text).toBe('Измененная через UI задача');
+    expect(updatedTodo.completed).toBe(false);
+    
+    // Отмечаем как выполненную через UI
+    await todoItem.locator('input[type="checkbox"]').click();
+    await page.waitForTimeout(500);
+    
+    // Проверяем изменения через API
+    const completedTodo = await apiHelper.getTodoByUuid(apiTodo.uuid);
+    expect(completedTodo.completed).toBe(true);
   });
 });
