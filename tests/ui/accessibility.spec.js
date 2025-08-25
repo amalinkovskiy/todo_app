@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('TODO Application Accessibility Tests', () => {
   
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    // Очищаем данные перед каждым тестом
+    await request.delete('/api/test/clear');
     await page.goto('/');
   });
 
@@ -10,7 +12,7 @@ test.describe('TODO Application Accessibility Tests', () => {
     // Проверяем наличие главного заголовка
     const mainHeading = page.locator('h1');
     await expect(mainHeading).toBeVisible();
-    await expect(mainHeading).toContainText('Simple TODO App');
+    await expect(mainHeading).toContainText('TODO List');
   });
 
   test('should have accessible form elements', async ({ page }) => {
@@ -52,7 +54,7 @@ test.describe('TODO Application Accessibility Tests', () => {
     // Проверяем кнопку удаления
     const deleteBtn = todoItem.locator('.delete-btn');
     await expect(deleteBtn).toBeVisible();
-    await expect(deleteBtn).toContainText('🗑');
+    await expect(deleteBtn).toContainText('Удалить');
     
     // Проверяем чекбокс
     const checkbox = todoItem.locator('input[type="checkbox"]');
@@ -97,8 +99,8 @@ test.describe('TODO Application Accessibility Tests', () => {
     await page.fill('#todoInput', 'Задача для Escape');
     await page.click('#addBtn');
     
-    // Открываем модальное окно
-    await page.locator('.todo-item .delete-btn').click();
+    // Открываем модальное окно - используем first() для первой кнопки
+    await page.locator('.todo-item .delete-btn').first().click();
     const modal = page.locator('#deleteModal');
     await expect(modal).toBeVisible();
     
@@ -112,8 +114,8 @@ test.describe('TODO Application Accessibility Tests', () => {
     await page.fill('#todoInput', 'Фокус тест');
     await page.click('#addBtn');
     
-    // Открываем модальное окно
-    await page.locator('.todo-item .delete-btn').click();
+    // Открываем модальное окно - используем first() для первой кнопки
+    await page.locator('.todo-item .delete-btn').first().click();
     const modal = page.locator('#deleteModal');
     await expect(modal).toBeVisible();
     

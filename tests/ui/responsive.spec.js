@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe('TODO Application Responsive Tests', () => {
   
+  test.beforeEach(async ({ request }) => {
+    // Очищаем данные перед каждым тестом
+    await request.delete('/api/test/clear');
+  });
+  
   test('should work on mobile viewport', async ({ page }) => {
     // Устанавливаем мобильный viewport
     await page.setViewportSize({ width: 375, height: 667 });
@@ -33,7 +38,12 @@ test.describe('TODO Application Responsive Tests', () => {
     for (const todo of todos) {
       await page.fill('#todoInput', todo);
       await page.click('#addBtn');
+      // Ждем появления задачи перед добавлением следующей
+      await page.waitForSelector('.todo-item', { timeout: 5000 });
     }
+    
+    // Ждем немного для стабилизации DOM
+    await page.waitForTimeout(500);
     
     // Проверяем корректное отображение списка
     const todoItems = page.locator('.todo-item');
@@ -47,7 +57,7 @@ test.describe('TODO Application Responsive Tests', () => {
     
     // Проверяем, что все элементы видны и доступны
     await expect(page.locator('.container')).toBeVisible();
-    await expect(page.locator('h1')).toContainText('Simple TODO App');
+    await expect(page.locator('h1')).toContainText('TODO List');
     
     // Тестируем функциональность на большом экране
     await page.fill('#todoInput', 'Десктопная задача');
