@@ -1,55 +1,57 @@
 import { test, expect } from '@playwright/test';
+import { TodoPage } from './page-objects/todo.page.js';
 
 test.describe('TODO Application Accessibility Tests', () => {
   
   test.beforeEach(async ({ page, request }) => {
     // Очищаем данные перед каждым тестом
     await request.delete('/api/test/clear');
-    await page.goto('/');
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
   });
 
   test('should have proper heading structure', async ({ page }) => {
+    const todoPage = new TodoPage(page);
     // Проверяем наличие главного заголовка
-    const mainHeading = page.locator('h1');
-    await expect(mainHeading).toBeVisible();
-    await expect(mainHeading).toContainText('TODO List');
+    await expect(todoPage.title).toBeVisible();
+    await expect(todoPage.title).toContainText('TODO List');
   });
 
   test('should have accessible form elements', async ({ page }) => {
+    const todoPage = new TodoPage(page);
     // Проверяем label для поля ввода
-    const input = page.locator('#todoInput');
-    await expect(input).toHaveAttribute('placeholder', 'Введите новую задачу...');
+    await expect(todoPage.input).toHaveAttribute('placeholder', 'Введите новую задачу...');
     
     // Проверяем кнопку добавления
-    const addBtn = page.locator('#addBtn');
-    await expect(addBtn).toBeVisible();
-    await expect(addBtn).toContainText('Добавить');
+    await expect(todoPage.addButton).toBeVisible();
+    await expect(todoPage.addButton).toContainText('Добавить');
   });
 
   test('should support keyboard navigation', async ({ page }) => {
+    const todoPage = new TodoPage(page);
     // Проверяем навигацию с клавиатуры
     await page.keyboard.press('Tab');
-    await expect(page.locator('#todoInput')).toBeFocused();
+    await expect(todoPage.input).toBeFocused();
     
     await page.keyboard.press('Tab');
-    await expect(page.locator('#addBtn')).toBeFocused();
+    await expect(todoPage.addButton).toBeFocused();
     
     // Добавляем задачу с клавиатуры
-    await page.focus('#todoInput');
-    await page.type('#todoInput', 'Клавиатурная задача');
+    await todoPage.input.focus();
+    await todoPage.input.type('Клавиатурная задача');
     await page.keyboard.press('Enter');
     
     // Проверяем, что задача добавилась
-    const todoItem = page.locator('.todo-item').first();
+    const todoItem = todoPage.todoItems().first();
     await expect(todoItem).toBeVisible();
   });
 
   test('should have accessible buttons with proper labels', async ({ page }) => {
+    const todoPage = new TodoPage(page);
     // Добавляем задачу для тестирования кнопок
-    await page.fill('#todoInput', 'Тестовая задача');
-    await page.click('#addBtn');
+    await todoPage.addTodo('Тестовая задача');
     
-    const todoItem = page.locator('.todo-item').first();
+    const todoItem = todoPage.todoItems().first();
     
     // Проверяем кнопку удаления
     const deleteBtn = todoItem.locator('.delete-btn');
@@ -62,12 +64,12 @@ test.describe('TODO Application Accessibility Tests', () => {
   });
 
   test('should announce state changes for screen readers', async ({ page }) => {
+    const todoPage = new TodoPage(page);
     // Добавляем задачу
-    await page.fill('#todoInput', 'Задача для скрин ридера');
-    await page.click('#addBtn');
+    await todoPage.addTodo('Задача для скрин ридера');
     
-    const todoItem = page.locator('.todo-item').first();
-    const checkbox = todoItem.locator('input[type="checkbox"]');
+    const todoItem = todoPage.todoItems().first();
+    const checkbox = todoPage.checkbox(todoItem);
     
     // Проверяем, что статус чекбокса меняется
     await expect(checkbox).not.toBeChecked();
@@ -79,45 +81,43 @@ test.describe('TODO Application Accessibility Tests', () => {
   });
 
   test('should have proper color contrast', async ({ page }) => {
+    const todoPage = new TodoPage(page);
     // Добавляем задачу для проверки стилей
-    await page.fill('#todoInput', 'Контрастная задача');
-    await page.click('#addBtn');
+    await todoPage.addTodo('Контрастная задача');
     
-    const todoItem = page.locator('.todo-item').first();
+    const todoItem = todoPage.todoItems().first();
     
     // Проверяем, что элементы видимы (базовая проверка контрастности)
-    await expect(todoItem.locator('.todo-text')).toBeVisible();
+    await expect(todoPage.todoText(todoItem)).toBeVisible();
     await expect(todoItem.locator('.delete-btn')).toBeVisible();
     
     // Отмечаем как выполненную и проверяем видимость
-    await todoItem.locator('input[type="checkbox"]').click();
-    await expect(todoItem.locator('.todo-text')).toBeVisible();
+    await todoPage.checkbox(todoItem).click();
+    await expect(todoPage.todoText(todoItem)).toBeVisible();
   });
 
   test('should support Escape key for modal closing', async ({ page }) => {
+    const todoPage = new TodoPage(page);
     // Добавляем задачу
-    await page.fill('#todoInput', 'Задача для Escape');
-    await page.click('#addBtn');
+    await todoPage.addTodo('Задача для Escape');
     
     // Открываем модальное окно - используем first() для первой кнопки
-    await page.locator('.todo-item .delete-btn').first().click();
-    const modal = page.locator('#deleteModal');
-    await expect(modal).toBeVisible();
+    await todoPage.openDeleteModalByIndex(0);
+    await expect(todoPage.deleteModal).toBeVisible();
     
     // Закрываем с помощью Escape
     await page.keyboard.press('Escape');
-    await expect(modal).not.toBeVisible();
+    await expect(todoPage.deleteModal).not.toBeVisible();
   });
 
   test('should maintain focus management in modal', async ({ page }) => {
+    const todoPage = new TodoPage(page);
     // Добавляем задачу
-    await page.fill('#todoInput', 'Фокус тест');
-    await page.click('#addBtn');
+    await todoPage.addTodo('Фокус тест');
     
     // Открываем модальное окно - используем first() для первой кнопки
-    await page.locator('.todo-item .delete-btn').first().click();
-    const modal = page.locator('#deleteModal');
-    await expect(modal).toBeVisible();
+    await todoPage.openDeleteModalByIndex(0);
+    await expect(todoPage.deleteModal).toBeVisible();
     
     // Проверяем, что кнопки в модальном окне доступны для фокуса
     await page.keyboard.press('Tab');

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { TodoPage } from './page-objects/todo.page.js';
 
 test.describe('TODO Application Responsive Tests', () => {
   
@@ -10,66 +11,67 @@ test.describe('TODO Application Responsive Tests', () => {
   test('should work on mobile viewport', async ({ page }) => {
     // Устанавливаем мобильный viewport
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/');
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.waitForReady();
     
     // Проверяем, что приложение загружается на мобильном
-    await expect(page.locator('#todoInput')).toBeVisible();
-    await expect(page.locator('#addBtn')).toBeVisible();
+    await expect(todoPage.input).toBeVisible();
+    await expect(todoPage.addButton).toBeVisible();
     
     // Добавляем задачу на мобильном
     const todoText = 'Мобильная задача';
-    await page.fill('#todoInput', todoText);
-    await page.click('#addBtn');
+    await todoPage.addTodo(todoText);
     
     // Проверяем, что задача отображается корректно
-    const todoItem = page.locator('.todo-item').first();
+    const todoItem = todoPage.todoItems().first();
     await expect(todoItem).toBeVisible();
-    await expect(todoItem.locator('.todo-text')).toContainText(todoText);
+    await expect(todoPage.todoText(todoItem)).toContainText(todoText);
   });
 
   test('should work on tablet viewport', async ({ page }) => {
     // Устанавливаем планшетный viewport
     await page.setViewportSize({ width: 768, height: 1024 });
-    await page.goto('/');
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.waitForReady();
     
     // Добавляем несколько задач для проверки отображения
     const todos = ['Планшет задача 1', 'Планшет задача 2'];
     
     for (const todo of todos) {
-      await page.fill('#todoInput', todo);
-      await page.click('#addBtn');
-      // Ждем появления задачи перед добавлением следующей
-      await page.waitForSelector('.todo-item', { timeout: 5000 });
+      await todoPage.addTodo(todo);
+      await todoPage.todoItems().first().waitFor({ timeout: 5000 });
     }
     
     // Ждем немного для стабилизации DOM
     await page.waitForTimeout(500);
     
     // Проверяем корректное отображение списка
-    const todoItems = page.locator('.todo-item');
+    const todoItems = todoPage.todoItems();
     await expect(todoItems).toHaveCount(2);
   });
 
   test('should work on desktop viewport', async ({ page }) => {
     // Устанавливаем десктопный viewport
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto('/');
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.waitForReady();
     
     // Проверяем, что все элементы видны и доступны
     await expect(page.locator('.container')).toBeVisible();
-    await expect(page.locator('h1')).toContainText('TODO List');
+    await expect(todoPage.title).toContainText('TODO List');
     
     // Тестируем функциональность на большом экране
-    await page.fill('#todoInput', 'Десктопная задача');
-    await page.click('#addBtn');
+    await todoPage.addTodo('Десктопная задача');
     
-    const todoItem = page.locator('.todo-item').first();
+    const todoItem = todoPage.todoItems().first();
     await expect(todoItem).toBeVisible();
     
     // Тестируем модальное окно на десктопе
-    await todoItem.locator('.delete-btn').click();
-    const modal = page.locator('#deleteModal');
-    await expect(modal).toBeVisible();
-    await page.click('#cancelDelete');
+    await todoPage.openDeleteModalByIndex(0);
+    await expect(todoPage.deleteModal).toBeVisible();
+    await todoPage.cancelDelete();
   });
 });

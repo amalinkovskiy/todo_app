@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { TodoApiHelper } from '../helpers/api-helpers.js';
+import { TodoPage } from './page-objects/todo.page.js';
 
 test.describe('TODO Application UI Tests', () => {
   let apiHelper;
+  let todoPage;
   
   test.beforeEach(async ({ page, request }) => {
     // Инициализируем API helper для подготовки данных
@@ -11,121 +13,83 @@ test.describe('TODO Application UI Tests', () => {
     // Очищаем базу данных перед каждым тестом
     await apiHelper.clearAllTodos();
     
-    // Переходим на главную страницу приложения
-    await page.goto('/');
-    
-    // Ждем загрузки приложения
-    await page.waitForSelector('#addBtn');
-    
-    // Ждем полной загрузки состояния
-    await page.waitForLoadState('networkidle');
+  // Инициализируем Page Object и подготавливаем UI
+  todoPage = new TodoPage(page);
+  await todoPage.goto();
+  await todoPage.waitForReady();
   });
 
   test('should display the application title', async ({ page }) => {
     // Проверяем заголовок страницы
-    await expect(page.locator('h1')).toContainText('TODO List');
-    await expect(page).toHaveTitle('Simple TODO App');
+  await expect(todoPage.title).toContainText('TODO List');
+  await expect(page).toHaveTitle('Simple TODO App');
   });
 
   test('should display empty todo list initially', async ({ page }) => {
     // Проверяем, что изначально нет задач
-    await expect(page.locator('.todo-item')).toHaveCount(0);
-    
-    // Проверяем, что контейнер для задач существует
-    await expect(page.locator('#todosList')).toBeVisible();
+  await expect(todoPage.todoItems()).toHaveCount(0);
+  // Проверяем, что контейнер для задач существует
+  await expect(todoPage.todosList).toBeVisible();
   });
 
   test('should add a new todo', async ({ page }) => {
     const todoText = 'Купить молоко';
     
-    // Вводим текст новой задачи
-    await page.fill('#todoInput', todoText);
+  // Добавляем задачу через Page Object
+  await todoPage.addTodo(todoText);
+  await todoPage.todoItems().first().waitFor();
     
-    // Нажимаем кнопку добавления
-    await page.click('#addBtn');
+  // Проверяем, что задача появилась в списке
+  const todoItems = todoPage.todoItems();
+  await expect(todoItems).toHaveCount(1);
+  await expect(todoPage.todoText(todoItems.first())).toContainText(todoText);
     
-    // Ждем появления задачи
-    await page.waitForSelector('.todo-item');
-    
-    // Проверяем, что задача появилась в списке
-    const todoItems = page.locator('.todo-item');
-    await expect(todoItems).toHaveCount(1);
-    await expect(todoItems.first().locator('.todo-text')).toContainText(todoText);
-    
-    // Проверяем, что поле ввода очистилось
-    await expect(page.locator('#todoInput')).toHaveValue('');
+  // Проверяем, что поле ввода очистилось
+  await expect(todoPage.input).toHaveValue('');
   });
 
   test('should add todo with Enter key', async ({ page }) => {
     const todoText = 'Сделать зарядку';
     
     // Вводим текст и нажимаем Enter
-    await page.fill('#todoInput', todoText);
-    await page.press('#todoInput', 'Enter');
+  await todoPage.addTodoWithEnter(todoText);
+  await todoPage.todoItems().first().waitFor();
     
-    // Ждем появления задачи
-    await page.waitForSelector('.todo-item');
-    
-    // Проверяем, что задача добавилась
-    const todoItems = page.locator('.todo-item');
-    await expect(todoItems).toHaveCount(1);
-    await expect(todoItems.first().locator('.todo-text')).toContainText(todoText);
+  const todoItems = todoPage.todoItems();
+  await expect(todoItems).toHaveCount(1);
+  await expect(todoPage.todoText(todoItems.first())).toContainText(todoText);
   });
 
   test('should not add empty todo', async ({ page }) => {
     // Пытаемся добавить пустую задачу
-    await page.click('#addBtn');
-    
-    // Ждем немного
-    await page.waitForTimeout(500);
-    
-    // Проверяем, что список остался пустым
-    await expect(page.locator('.todo-item')).toHaveCount(0);
+  await todoPage.clickAddButton();
+  await page.waitForTimeout(500);
+  await expect(todoPage.todoItems()).toHaveCount(0);
   });
 
   test('should toggle todo completion', async ({ page }) => {
     const todoText = 'Прочитать книгу';
     
     // Добавляем задачу
-    await page.fill('#todoInput', todoText);
-    await page.click('#addBtn');
+  await todoPage.addTodo(todoText);
+  await todoPage.todoItems().first().waitFor();
     
-    // Ждем появления задачи
-    await page.waitForSelector('.todo-item');
+  const todoItem = todoPage.todoItems().first();
+  const checkbox = todoPage.checkbox(todoItem);
     
-    const todoItem = page.locator('.todo-item').first();
-    const checkbox = todoItem.locator('input[type="checkbox"]');
+  await expect(checkbox).not.toBeChecked();
+  await expect(todoItem).not.toHaveClass(/completed/);
     
-    // Проверяем, что задача не выполнена
-    await expect(checkbox).not.toBeChecked();
-    await expect(todoItem).not.toHaveClass(/completed/);
+  await checkbox.click();
+  await page.waitForTimeout(1000);
+  await expect(checkbox).toBeChecked();
+  await todoPage.waitForFirstItemCompleted();
+  await expect(todoItem).toHaveClass(/completed/);
     
-    // Отмечаем задачу как выполненную
-    await checkbox.click();
-    
-    // Ждем обновления с более длительным таймаутом
-    await page.waitForTimeout(1000);
-    
-    // Проверяем, что чекбокс выбран
-    await expect(checkbox).toBeChecked();
-    
-    // Ждем еще немного для CSS класса
-    await page.waitForFunction(() => {
-      const item = document.querySelector('.todo-item');
-      return item && item.classList.contains('completed');
-    }, { timeout: 5000 });
-    
-    await expect(todoItem).toHaveClass(/completed/);
-    
-    // Снимаем отметку
-    await checkbox.click();
-    
-    // Ждем обновления
-    await page.waitForTimeout(1000);
-    
-    // Проверяем, что задача снова не выполнена
-    await expect(checkbox).not.toBeChecked();
-    await expect(todoItem).not.toHaveClass(/completed/);
+  await checkbox.click();
+  await page.waitForTimeout(1000);
+  await expect(checkbox).not.toBeChecked();
+  await expect(todoItem).not.toHaveClass(/completed/);
   });
 
   test('should edit todo text', async ({ page }) => {
@@ -133,32 +97,21 @@ test.describe('TODO Application UI Tests', () => {
     const editedText = 'Отредактированная задача';
     
     // Добавляем задачу
-    await page.fill('#todoInput', originalText);
-    await page.click('#addBtn');
+  await todoPage.addTodo(originalText);
+  await todoPage.todoItems().first().waitFor();
+  const todoItem = todoPage.todoItems().first();
     
-    // Ждем появления задачи
-    await page.waitForSelector('.todo-item');
+  await todoPage.startEditByIndex(0);
+  const editInput = todoPage.editInput();
+  await expect(editInput).toBeVisible();
+  await expect(editInput).toHaveValue(originalText);
     
-    const todoItem = page.locator('.todo-item').first();
+  await editInput.fill(editedText);
+  await todoPage.saveEditByIndex(0, editedText);
+  await page.waitForTimeout(500);
     
-    // Нажимаем кнопку редактирования
-    await todoItem.locator('.edit-btn').click();
-    
-    // Проверяем, что появилось поле редактирования
-    const editInput = todoItem.locator('.edit-input');
-    await expect(editInput).toBeVisible();
-    await expect(editInput).toHaveValue(originalText);
-    
-    // Редактируем текст
-    await editInput.fill(editedText);
-    await todoItem.locator('.save-btn').click();
-    
-    // Ждем сохранения
-    await page.waitForTimeout(500);
-    
-    // Проверяем, что текст изменился
-    await expect(todoItem.locator('.todo-text')).toContainText(editedText);
-    await expect(editInput).not.toBeVisible();
+  await expect(todoPage.todoText(todoItem)).toContainText(editedText);
+  await expect(editInput).not.toBeVisible();
   });
 
   test('should cancel edit with Escape', async ({ page }) => {
@@ -166,114 +119,68 @@ test.describe('TODO Application UI Tests', () => {
     const tempText = 'Временный текст';
     
     // Добавляем задачу
-    await page.fill('#todoInput', originalText);
-    await page.click('#addBtn');
+  await todoPage.addTodo(originalText);
+  await todoPage.todoItems().first().waitFor();
+  const todoItem = todoPage.todoItems().first();
     
-    // Ждем появления задачи
-    await page.waitForSelector('.todo-item');
+  await todoPage.startEditByIndex(0);
+  const editInput = todoPage.editInput();
+  await expect(editInput).toBeVisible();
     
-    const todoItem = page.locator('.todo-item').first();
+  await editInput.fill(tempText);
+  await todoPage.cancelEditWithEscape();
+  await page.waitForTimeout(500);
     
-    // Начинаем редактирование через кнопку
-    await todoItem.locator('.edit-btn').click();
-    
-    // Ждем появления поля редактирования
-    const editInput = todoItem.locator('.edit-input');
-    await expect(editInput).toBeVisible();
-    
-    // Изменяем текст, но нажимаем Escape
-    await editInput.fill(tempText);
-    await editInput.press('Escape');
-    
-    // Ждем выхода из режима редактирования
-    await page.waitForTimeout(500);
-    
-    // Проверяем, что текст остался оригинальным
-    await expect(todoItem.locator('.todo-text')).toContainText(originalText);
-    await expect(editInput).not.toBeVisible();
+  await expect(todoPage.todoText(todoItem)).toContainText(originalText);
+  await expect(editInput).not.toBeVisible();
   });
 
   test('should delete todo with confirmation modal', async ({ page }) => {
     const todoText = 'Задача для удаления';
     
     // Добавляем задачу
-    await page.fill('#todoInput', todoText);
-    await page.click('#addBtn');
+  await todoPage.addTodo(todoText);
+  const todoItem = todoPage.todoItems().first();
+  await todoPage.openDeleteModalByIndex(0);
     
-    const todoItem = page.locator('.todo-item').first();
+  await expect(todoPage.deleteModal).toBeVisible();
+  await expect(todoPage.modalTaskName).toContainText(todoText);
     
-    // Нажимаем кнопку удаления
-    await todoItem.locator('.delete-btn').click();
+  await todoPage.confirmDelete();
+  await expect(todoPage.deleteModal).not.toBeVisible();
     
-    // Проверяем, что появилось модальное окно подтверждения
-    const modal = page.locator('#deleteModal');
-    await expect(modal).toBeVisible();
-    await expect(modal.locator('#modalTaskName')).toContainText(todoText);
-    
-    // Подтверждаем удаление
-    await page.click('#confirmDelete');
-    
-    // Ждем закрытия модального окна
-    await expect(modal).not.toBeVisible();
-    
-    // Ждем удаления элемента и появления пустого состояния
-    await page.waitForFunction(
-      () => document.querySelectorAll('.todo-item').length === 0,
-      { timeout: 5000 }
-    );
-    
-    // Проверяем, что задача удалена и отображается пустое состояние
-    await expect(page.locator('.todo-item')).toHaveCount(0);
-    await expect(page.locator('.empty-state')).toBeVisible();
+  await todoPage.waitForTodoCount(0);
+  await expect(todoPage.todoItems()).toHaveCount(0);
+  await expect(todoPage.emptyState).toBeVisible();
   });
 
   test('should cancel todo deletion', async ({ page }) => {
     const todoText = 'Задача остается';
     
     // Добавляем задачу
-    await page.fill('#todoInput', todoText);
-    await page.click('#addBtn');
+  await todoPage.addTodo(todoText);
+  await todoPage.todoItems().first().waitFor();
+  const todoItem = todoPage.todoItems().first();
     
-    // Ждем появления задачи
-    await page.waitForSelector('.todo-item');
+  await todoPage.openDeleteModalByIndex(0);
+  await expect(todoPage.deleteModal).toBeVisible();
+  await todoPage.cancelDelete();
+  await expect(todoPage.deleteModal).not.toBeVisible();
     
-    const todoItem = page.locator('.todo-item').first();
-    
-    // Нажимаем кнопку удаления
-    await todoItem.locator('.delete-btn').click();
-    
-    // Проверяем модальное окно и отменяем
-    const modal = page.locator('#deleteModal');
-    await expect(modal).toBeVisible();
-    await page.click('#cancelDelete');
-    
-    // Ждем закрытия модального окна
-    await expect(modal).not.toBeVisible();
-    
-    // Проверяем, что задача осталась
-    await expect(todoItem).toBeVisible();
-    await expect(todoItem.locator('.todo-text')).toContainText(todoText);
+  await expect(todoItem).toBeVisible();
+  await expect(todoPage.todoText(todoItem)).toContainText(todoText);
   });
 
   test('should close modal by clicking outside', async ({ page }) => {
     const todoText = 'Тестовая задача';
     
     // Добавляем задачу
-    await page.fill('#todoInput', todoText);
-    await page.click('#addBtn');
-    
-    // Открываем модальное окно удаления
-    await page.locator('.todo-item').first().locator('.delete-btn').click();
-    
-    const modal = page.locator('#deleteModal');
-    await expect(modal).toBeVisible();
-    
-    // Кликаем вне модального окна
-    await modal.click({ position: { x: 10, y: 10 } });
-    
-    // Проверяем, что модальное окно закрылось
-    await expect(modal).not.toBeVisible();
-    await expect(page.locator('.todo-item')).toBeVisible();
+  await todoPage.addTodo(todoText);
+  await todoPage.openDeleteModalByIndex(0);
+  await expect(todoPage.deleteModal).toBeVisible();
+  await todoPage.clickOutsideModal();
+  await expect(todoPage.deleteModal).not.toBeVisible();
+  await expect(todoPage.todoItems()).toBeVisible();
   });
 
   test('should handle multiple todos', async ({ page }) => {
@@ -281,50 +188,26 @@ test.describe('TODO Application UI Tests', () => {
     
     // Добавляем несколько задач
     for (const todo of todos) {
-      await page.fill('#todoInput', todo);
-      await page.click('#addBtn');
-      // Ждем добавления каждой задачи
+      await todoPage.addTodo(todo);
       await page.waitForTimeout(200);
     }
     
-    // Ждем загрузки всех задач
-    await page.waitForFunction(
-      (expectedCount) => document.querySelectorAll('.todo-item').length === expectedCount,
-      todos.length,
-      { timeout: 5000 }
-    );
-    
-    // Проверяем, что все задачи добавлены
-    const todoItems = page.locator('.todo-item');
+    await todoPage.waitForTodoCount(todos.length);
+    const todoItems = todoPage.todoItems();
     await expect(todoItems).toHaveCount(todos.length);
     
-    // Проверяем текст каждой задачи
     for (let i = 0; i < todos.length; i++) {
-      await expect(todoItems.nth(i).locator('.todo-text')).toContainText(todos[i]);
+      await expect(todoPage.todoText(todoItems.nth(i))).toContainText(todos[i]);
     }
     
-    // Отмечаем первую задачу как выполненную
-    await todoItems.first().locator('input[type="checkbox"]').click();
-    
-    // Ждем обновления состояния
-    await page.waitForFunction(() => {
-      const firstItem = document.querySelector('.todo-item');
-      return firstItem && firstItem.classList.contains('completed');
-    }, { timeout: 5000 });
-    
+    await todoPage.toggleTodoByIndex(0);
+    await todoPage.waitForFirstItemCompleted();
     await expect(todoItems.first()).toHaveClass(/completed/);
     
-    // Удаляем вторую задачу
-    await todoItems.nth(1).locator('.delete-btn').click();
-    await page.click('#confirmDelete');
+    await todoPage.openDeleteModalByIndex(1);
+    await todoPage.confirmDelete();
     
-    // Ждем удаления задачи
-    await page.waitForFunction(
-      () => document.querySelectorAll('.todo-item').length === 2,
-      { timeout: 5000 }
-    );
-    
-    // Проверяем, что осталось 2 задачи
+    await todoPage.waitForTodoCount(2);
     await expect(todoItems).toHaveCount(2);
   });
 
@@ -335,21 +218,17 @@ test.describe('TODO Application UI Tests', () => {
     await apiHelper.createTodo('API созданная задача 3');
     
     // Перезагружаем страницу для получения данных с сервера
-    await page.reload();
-    await page.waitForSelector('.todo-item');
+  await page.reload();
+  await todoPage.todoItems().first().waitFor();
     
-    // Проверяем, что задачи отображаются
-    const todoItems = page.locator('.todo-item');
-    await expect(todoItems).toHaveCount(3);
+  const todoItems = todoPage.todoItems();
+  await expect(todoItems).toHaveCount(3);
+  await expect(todoItems.nth(1)).toHaveClass(/completed/);
+  await expect(todoPage.checkbox(todoItems.nth(1))).toBeChecked();
     
-    // Проверяем, что вторая задача помечена как выполненная
-    await expect(todoItems.nth(1)).toHaveClass(/completed/);
-    await expect(todoItems.nth(1).locator('input[type="checkbox"]')).toBeChecked();
-    
-    // Проверяем тексты задач
-    await expect(todoItems.nth(0).locator('.todo-text')).toContainText('API созданная задача 1');
-    await expect(todoItems.nth(1).locator('.todo-text')).toContainText('API созданная задача 2');
-    await expect(todoItems.nth(2).locator('.todo-text')).toContainText('API созданная задача 3');
+  await expect(todoPage.todoText(todoItems.nth(0))).toContainText('API созданная задача 1');
+  await expect(todoPage.todoText(todoItems.nth(1))).toContainText('API созданная задача 2');
+  await expect(todoPage.todoText(todoItems.nth(2))).toContainText('API созданная задача 3');
   });
 
   test('should integrate UI actions with API state', async ({ page }) => {
@@ -357,18 +236,16 @@ test.describe('TODO Application UI Tests', () => {
     const apiTodo = await apiHelper.createTodo('Задача из API');
     
     // Перезагружаем страницу
-    await page.reload();
-    await page.waitForSelector('.todo-item');
+  await page.reload();
+  await todoPage.todoItems().first().waitFor();
     
-    // Проверяем, что задача отображается
-    const todoItem = page.locator('.todo-item').first();
-    await expect(todoItem.locator('.todo-text')).toContainText('Задача из API');
+  const todoItem = todoPage.todoItems().first();
+  await expect(todoPage.todoText(todoItem)).toContainText('Задача из API');
     
-    // Изменяем задачу через UI
-    await todoItem.locator('.edit-btn').click();
-    const editInput = todoItem.locator('.edit-input');
-    await editInput.fill('Измененная через UI задача');
-    await todoItem.locator('.save-btn').click();
+  await todoPage.startEditByIndex(0);
+  const editInput = todoPage.editInput();
+  await editInput.fill('Измененная через UI задача');
+  await todoPage.saveEditByIndex(0, 'Измененная через UI задача');
     
     // Проверяем изменения через API
     const updatedTodo = await apiHelper.getTodoByUuid(apiTodo.uuid);
