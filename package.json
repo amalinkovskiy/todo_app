@@ -6,23 +6,14 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test:server": "cross-env NODE_ENV=test PORT=3002 node src/server.js",
-    "lint": "eslint . --ext .js",
-    "lint:fix": "eslint . --ext .js --fix",
-    "format": "prettier --write .",
-    "test": "playwright test --workers=1",
-    "test:api": "playwright test --project=api --workers=1",
-    "test:ui": "playwright test --project=ui-chromium --workers=1",
-    "test:mcp": "playwright test --project=mcp-generated --workers=1",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
-    "test:report": "playwright show-report",
-    "mcp:start": "node scripts/playwright-mcp-helper.js start-mcp",
-    "mcp:create": "node scripts/playwright-mcp-helper.js create-test",
-    "mcp:analyze": "node scripts/playwright-mcp-helper.js analyze",
-    "mcp:coverage": "node scripts/playwright-mcp-helper.js coverage",
-    "mcp:help": "node scripts/playwright-mcp-helper.js help",
-    "prepare": "husky install"
+    "test": "npx playwright test --workers=1",
+    "test:api": "npx playwright test --project=\"API Tests\" --workers=1",
+    "test:ui": "npx playwright test --project=\"UI Tests\" --workers=1",
+    "test:headed": "npx playwright test --project=\"UI Tests\" --headed",
+    "test:debug": "npx playwright test --project=\"UI Tests\" --debug",
+    "test:report": "npx playwright show-report",
+    "mcp:generate": "npx playwright mcp",
+    "mcp:help": "npx playwright mcp --help"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -41,11 +32,7 @@
     "nodemon": "^3.0.1",
     "prettier": "^3.6.2"
   },
-  "keywords": [
-    "todo",
-    "api",
-    "express"
-  ],
+  "keywords": [],
   "author": "",
   "license": "MIT"
 }

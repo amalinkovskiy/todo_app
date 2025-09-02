@@ -29,56 +29,22 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // API тесты - запускаются без браузера
     {
-      name: 'api',
-      testDir: './tests/api',
+      name: 'API Tests',
+      testMatch: /tests\/api\/.*\.spec\.js/,
       use: {
-        // У API тестов свой baseURL, так как они не используют UI
-        baseURL: 'http://localhost:3002',
+        ...devices['Desktop Chrome'],
+        baseURL: `http://localhost:${process.env.PORT || 3002}`,
       },
     },
-    
-    // UI тесты - основной браузер
     {
-      name: 'ui-chromium',
-      testDir: './tests/ui',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'UI Tests',
+      testMatch: /tests\/ui\/.*\.spec\.js/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: `http://localhost:${process.env.PORT || 3002}`,
+      },
     },
-
-    // UI тесты - дополнительные браузеры (можно включить при необходимости)
-    // {
-    //   name: 'ui-firefox',
-    //   testDir: './tests/ui',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-
-    // {
-    //   name: 'ui-webkit',
-    //   testDir: './tests/ui',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-
-    // MCP-сгенерированные тесты
-    {
-      name: 'mcp-generated',
-      testDir: './tests/mcp-generated',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
 
   /* Run your local dev server before starting the tests */
