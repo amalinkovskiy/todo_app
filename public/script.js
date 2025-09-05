@@ -22,15 +22,15 @@ class TodoApp {
   }
 
   bindEvents() {
-    this.addBtn.addEventListener('click', () => this.addTodo());
-    this.todoInput.addEventListener('keypress', (e) => {
+    this.addBtn.addEventListener('click', async () => await this.addTodo());
+    this.todoInput.addEventListener('keypress', async (e) => {
       if (e.key === 'Enter') {
-        this.addTodo();
+        await this.addTodo();
       }
     });
 
     // События модального окна
-    this.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
+    this.confirmDeleteBtn.addEventListener('click', async () => await this.confirmDelete());
     this.cancelDeleteBtn.addEventListener('click', () =>
       this.closeDeleteModal()
     );
@@ -244,9 +244,9 @@ class TodoApp {
   bindTodoEvents() {
     // Чекбоксы
     document.querySelectorAll('.todo-checkbox').forEach((checkbox) => {
-      checkbox.addEventListener('change', (e) => {
+      checkbox.addEventListener('change', async (e) => {
         const uuid = e.target.dataset.uuid;
-        this.toggleTodo(uuid);
+        await this.toggleTodo(uuid);
       });
     });
 
@@ -268,12 +268,12 @@ class TodoApp {
 
     // Кнопки сохранения
     document.querySelectorAll('.save-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const uuid = e.target.dataset.uuid;
         const input = document.querySelector(
           `.edit-input[data-uuid="${uuid}"]`
         );
-        this.saveEdit(uuid, input.value);
+        await this.saveEdit(uuid, input.value);
       });
     });
 
@@ -286,10 +286,10 @@ class TodoApp {
 
     // Enter в поле редактирования
     document.querySelectorAll('.edit-input').forEach((input) => {
-      input.addEventListener('keypress', (e) => {
+      input.addEventListener('keypress', async (e) => {
         if (e.key === 'Enter') {
           const uuid = e.target.dataset.uuid;
-          this.saveEdit(uuid, e.target.value);
+          await this.saveEdit(uuid, e.target.value);
         }
       });
       

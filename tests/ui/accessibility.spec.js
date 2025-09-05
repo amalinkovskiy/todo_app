@@ -74,7 +74,7 @@ test.describe('TODO Application Accessibility Tests', () => {
     // Проверяем, что статус чекбокса меняется
     await expect(checkbox).not.toBeChecked();
     await checkbox.click();
-    await expect(checkbox).toBeChecked();
+    await todoPage.waitForFirstItemCompleted();
     
     // Проверяем класс completed
     await expect(todoItem).toHaveClass(/completed/);

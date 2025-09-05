@@ -100,6 +100,10 @@ jspm_packages/
 ehthumbs.db
 Thumbs.db
 
+# Playwright reports
+playwright-report/
+
+
 # Logs
 logs
 *.log
