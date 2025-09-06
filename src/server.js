@@ -20,6 +20,19 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // Routes
 app.use('/api/todos', todoRoutes);
 
+// Health check
+app.get('/health', async (req, res) => {
+  const todoService = require('./services/todo.service');
+  const result = await todoService.healthCheck();
+  const statusCode = result.ok && result.db ? 200 : 503;
+  res.status(statusCode).json({
+    status: result.ok ? 'ok' : 'error',
+    db: result.db,
+    timestamp: new Date().toISOString(),
+    ...(result.error ? { error: result.error } : {})
+  });
+});
+
 // Test routes (only in test environment)
 if (process.env.NODE_ENV === 'test') {
   const testRoutes = require('./api/test.routes');

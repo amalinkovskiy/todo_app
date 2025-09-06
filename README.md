@@ -9,6 +9,7 @@
 - ✅ Edit task titles
 - ✅ Delete tasks with confirmation
 - ✅ REST API with data validation
+- ✅ Health check endpoint (`GET /health`)
 - ✅ Full test coverage (API + UI)
 - ✅ Playwright MCP to assist in creating tests
 
@@ -16,18 +17,19 @@
 
 ### 🏗️ Architecture
 - ✅ Node.js + Express.js (MVC)
-- ✅ Server-side rendering (EJS)
-- ✅ PostgreSQL database with dual-environment support
-- ✅ Data validation using `express-validator`
+- ✅ PostgreSQL database (single pg Pool)
+- ✅ Data validation using Joi
 - ✅ Test environment setup (`.env.test`)
-- ✅ Responsive UI with modals
+- ✅ Responsive UI
 - ✅ Podman containerization for local development
+- ✅ Serverless-friendly design (Vercel rewrites to single entry)
 
 ### 🧪 Testing
-- **Single test framework:** Playwright for both API and UI tests.
-- **Comprehensive coverage:** Includes API, UI, responsive layout, and accessibility tests.
+- **Single test framework:** Playwright for API, UI, responsiveness, accessibility.
+- **Live production test suite:** Separate config hitting deployed Vercel URL.
+- **Health endpoint covered:** `/health` basic availability & DB connectivity.
 - **Full data isolation:** Ensures stable execution.
-- **Test “incubator”:** The `mcp-generated` folder is used as a temporary place for auto-generated tests before refactoring.
+- **Generated test staging:** Temporary drafts refined before inclusion.
 
 ### 🎭 Playwright MCP Integration
 - **Official `@playwright/mcp`** installed and configured.
@@ -93,6 +95,26 @@ npm run dev
 App available at `http://localhost:3000`.
 
 ### 🧪 Testing
+### 🩺 Health Check
+```
+GET /health
+Response 200:
+{
+	"status": "ok",
+	"db": true,
+	"timestamp": "2025-09-06T12:34:56.789Z"
+}
+
+If DB not reachable -> HTTP 503 with:
+{
+	"status": "error",
+	"db": false,
+	"error": "<message>",
+	"timestamp": "..."
+}
+```
+
+Use this for uptime probes or CI smoke tests.
 ```bash
 # Database Management
 npm run db:start         # Start PostgreSQL container

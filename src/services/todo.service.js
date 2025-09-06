@@ -153,6 +153,19 @@ class TodoService {
       throw error;
     }
   }
+  async healthCheck() {
+    try {
+      if (!this.initialized) {
+        await this.init();
+      }
+      const client = await this.pool.connect();
+      const result = await client.query('SELECT 1 as ok');
+      client.release();
+      return { ok: true, db: result.rows[0].ok === 1 };
+    } catch (error) {
+      return { ok: false, db: false, error: error.message };
+    }
+  }
 }
 
 module.exports = new TodoService();
