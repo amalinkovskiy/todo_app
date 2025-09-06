@@ -1,80 +1,80 @@
-# TODO App с Playwright MCP Integration
+# TODO App with Playwright MCP Integration
 
-🎉 **Профессиональное TODO приложение с полной интеграцией тестирования и Playwright MCP!**
+🎉 **A professional TODO application with full testing integration and Playwright MCP!**
 
-## Основные возможности
+## Core Features
 
-- ✅ Добавление новых задач
-- ✅ Отметка задач как выполненных
-- ✅ Редактирование названий задач
-- ✅ Удаление задач с подтверждением
-- ✅ REST API с валидацией данных
-- ✅ Полное тестовое покрытие (API + UI)
-- ✅ Playwright MCP для помощи в создании тестов
+- ✅ Add new tasks
+- ✅ Mark tasks as completed
+- ✅ Edit task titles
+- ✅ Delete tasks with confirmation
+- ✅ REST API with data validation
+- ✅ Full test coverage (API + UI)
+- ✅ Playwright MCP to assist in creating tests
 
-## Что реализовано:
+## Implemented
 
-### 🏗️ Архитектура:
+### 🏗️ Architecture
 - ✅ Node.js + Express.js (MVC)
-- ✅ Рендеринг на стороне сервера (EJS)
-- ✅ Хранение данных в JSON-файле
-- ✅ Валидация данных с помощью express-validator
-- ✅ Настройка для тестового окружения (`.env.test`)
-- ✅ Responsive UI с модальными окнами
+- ✅ Server-side rendering (EJS)
+- ✅ Data stored in a JSON file
+- ✅ Data validation using `express-validator`
+- ✅ Test environment setup (`.env.test`)
+- ✅ Responsive UI with modals
 
-### 🧪 Тестирование:
-- **Единый тестовый фреймворк**: Playwright для API и UI тестов.
-- **Комплексное покрытие**: Включает API, UI, тесты на адаптивность и доступность.
-- **Полная изоляция данных**: Гарантирует стабильность выполнения.
-- **"Инкубатор" для тестов**: Использование папки `mcp-generated` как временного хранилища для автосгенерированных тестов перед их рефакторингом.
+### 🧪 Testing
+- **Single test framework:** Playwright for both API and UI tests.
+- **Comprehensive coverage:** Includes API, UI, responsive layout, and accessibility tests.
+- **Full data isolation:** Ensures stable execution.
+- **Test “incubator”:** The `mcp-generated` folder is used as a temporary place for auto-generated tests before refactoring.
 
-### 🎭 Playwright MCP Integration:
-- **Официальный @playwright/mcp** установлен и настроен.
-- **Генерация тестов** на основе пользовательских сценариев.
-- **Интеллектуальный анализ** существующих тестов.
+### 🎭 Playwright MCP Integration
+- **Official `@playwright/mcp`** installed and configured.
+- **Test generation** based on user scenarios.
+- **Intelligent analysis** of existing tests.
 
-## 💡 Процесс работы с MCP (Workflow)
+## 💡 MCP Workflow
 
-Мы используем MCP как помощника для ускорения написания тестов, придерживаясь следующего процесса:
+We use MCP as an assistant to speed up writing tests while maintaining high code quality:
 
-1.  **Генерация:** Используем MCP для генерации "черновика" теста в папку `tests/mcp-generated/`.
-2.  **Ревью:** Анализируем сгенерированный код на предмет избыточности и корректности.
-3.  **Рефакторинг:** Переписываем тест, приводя его к стандартам проекта (например, используя декларативный стиль).
-4.  **Интеграция:** Перемещаем готовый, качественный тест в основную папку `tests/ui/`.
-5.  **Очистка:** Удаляем исходный "черновик" из папки `mcp-generated`.
+1. **Generate:** Use MCP to create a draft test in `tests/mcp-generated/`.
+2. **Review:** Analyze the generated code for redundancy and correctness.
+3. **Refactor:** Rewrite the test to match project standards (e.g., declarative style).
+4. **Integrate:** Move the refined test into `tests/ui/`.
+5. **Clean up:** Delete the original draft from `mcp-generated`.
 
-Этот подход позволяет нам сохранять высокое качество основного тестового набора, используя MCP для рутинной работы.
+This keeps the main test suite clean while leveraging MCP for routine work.
 
-## Быстрый старт
+## Quick Start
 
-### ⚙️ Установка:
+### ⚙️ Install
 ```bash
 npm install
 ```
 
-### 🚀 Запуск:
+### 🚀 Run
 ```bash
 npm run dev
 ```
-Приложение будет доступно по адресу `http://localhost:3000`.
+App available at `http://localhost:3000`.
 
-### 🧪 Тестирование:
+### 🧪 Testing
 ```bash
-npm test           # Запуск всех API и UI тестов
-npm run test:api   # Только API тесты
-npm run test:ui    # Только UI тесты
-npm run test:headed    # UI тесты с браузером
-npm run test:debug     # Отладка UI тестов
-npm run test:report    # Показать HTML отчет
+npm test             # Run all API and UI tests
+npm run test:api     # API tests only
+npm run test:ui      # UI tests only
+npm run test:headed  # UI tests with browser
+npm run test:debug   # Debug UI tests
+npm run test:report  # Open HTML report
 ```
 
-### 🎭 Playwright MCP:
+### 🎭 Playwright MCP
 ```bash
-npm run mcp:help     # Справка по MCP командам
-npm run mcp:generate # Запустить генерацию тестов
+npm run mcp:help      # MCP command help
+npm run mcp:generate  # Generate tests
 ```
 
-## 📁 Структура проекта
+## 📁 Project Structure
 ```
 .
 ├── 📁 .vscode/
@@ -113,8 +113,8 @@ npm run mcp:generate # Запустить генерацию тестов
 │   │   ├── todo.spec.js
 │   │   ├── responsive.spec.js
 │   │   └── accessibility.spec.js
-│   ├── api-helpers.js               # Утилиты для API запросов в тестах
-│   └── global-setup.js              # Глобальная настройка
+│   ├── api-helpers.js          # API request utilities for tests
+│   └── global-setup.js         # Global setup
 ├── scripts/
 │   └── cleanup-db.js
 ├── .env
