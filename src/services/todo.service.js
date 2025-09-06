@@ -1,4 +1,4 @@
-const { sql } = require('@vercel/postgres');
+const { sql, createPool } = require('@vercel/postgres');
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 
@@ -7,6 +7,7 @@ class TodoService {
     this.initialized = false;
     this.useLocalPg = false;
     this.pool = null;
+    this.vercelPool = null;
   }
 
   async init() {
@@ -46,7 +47,10 @@ class TodoService {
     } else {
       // Use Vercel Postgres for production
       try {
-        await sql`
+        this.vercelPool = createPool({
+          connectionString: process.env.POSTGRES_URL,
+        });
+        await this.vercelPool.sql`
           CREATE TABLE IF NOT EXISTS todos (
             uuid UUID PRIMARY KEY,
             text VARCHAR(255) NOT NULL,
@@ -86,7 +90,7 @@ class TodoService {
           updatedAt: row.updated_at
         }));
       } else {
-        const { rows } = await sql`
+        const { rows } = await this.vercelPool.sql`
           SELECT uuid, text, completed, created_at, updated_at 
           FROM todos 
           ORDER BY created_at DESC
@@ -132,7 +136,7 @@ class TodoService {
           updatedAt: row.updated_at
         };
       } else {
-        const { rows } = await sql`
+        const { rows } = await this.vercelPool.sql`
           SELECT uuid, text, completed, created_at, updated_at 
           FROM todos 
           WHERE uuid = ${uuid}
@@ -182,7 +186,7 @@ class TodoService {
           updatedAt: row.updated_at
         };
       } else {
-        const result = await sql`
+        const result = await this.vercelPool.sql`
           INSERT INTO todos (uuid, text, completed)
           VALUES (${newUuid}, ${text}, false)
           RETURNING uuid, text, completed, created_at, updated_at
@@ -234,8 +238,8 @@ class TodoService {
           updatedAt: row.updated_at
         };
       } else {
-        const result = await sql`
-          UPDATE todos 
+        const result = await this.vercelPool.sql`
+          UPDATE todos
           SET text = ${text}, completed = ${completed}, updated_at = NOW()
           WHERE uuid = ${uuid}
           RETURNING uuid, text, completed, created_at, updated_at
@@ -269,11 +273,12 @@ class TodoService {
         
         return result.rowCount > 0;
       } else {
-        const { rowCount } = await sql`
-          DELETE FROM todos WHERE uuid = ${uuid}
+        const result = await this.vercelPool.sql`
+          DELETE FROM todos
+          WHERE uuid = ${uuid}
         `;
         
-        return rowCount > 0;
+        return result.rowCount > 0;
       }
     } catch (error) {
       console.error('Failed to delete todo:', error);
@@ -287,10 +292,10 @@ class TodoService {
     try {
       if (this.useLocalPg) {
         const client = await this.pool.connect();
-        await client.query(`TRUNCATE TABLE todos RESTART IDENTITY`);
+        await client.query('DELETE FROM todos');
         client.release();
       } else {
-        await sql`TRUNCATE TABLE todos RESTART IDENTITY`;
+        await this.vercelPool.sql`DELETE FROM todos`;
       }
     } catch (error) {
       console.error('Failed to clear todos:', error);
