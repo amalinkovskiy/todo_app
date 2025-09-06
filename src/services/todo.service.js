@@ -1,6 +1,5 @@
 const { sql } = require('@vercel/postgres');
 const { v4: uuidv4 } = require('uuid');
-const config = require('../config');
 
 class TodoService {
   constructor() {
@@ -8,6 +7,7 @@ class TodoService {
   }
 
   async init() {
+    if (this.initialized) return;
     try {
       // Create table if it doesn't exist
       await sql`
@@ -15,13 +15,13 @@ class TodoService {
           uuid UUID PRIMARY KEY,
           text VARCHAR(255) NOT NULL,
           completed BOOLEAN DEFAULT false,
-          created_at TIMESTAMP DEFAULT NOW(),
-          updated_at TIMESTAMP DEFAULT NOW()
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )
       `;
       
       this.initialized = true;
-      console.log('Database initialized successfully');
+      console.log('Database initialized successfully using PostgreSQL');
     } catch (error) {
       console.error('Failed to initialize database:', error);
       throw error;
@@ -29,9 +29,7 @@ class TodoService {
   }
 
   async getAllTodos() {
-    if (!this.initialized) {
-      await this.init();
-    }
+    await this.init();
     
     try {
       const { rows } = await sql`
@@ -54,9 +52,7 @@ class TodoService {
   }
 
   async getTodoByUuid(uuid) {
-    if (!this.initialized) {
-      await this.init();
-    }
+    await this.init();
     
     try {
       const { rows } = await sql`
@@ -84,26 +80,25 @@ class TodoService {
   }
 
   async createTodo(todoData) {
-    if (!this.initialized) {
-      await this.init();
-    }
+    await this.init();
     
     const newUuid = uuidv4();
     const text = todoData.text.trim();
-    const now = new Date().toISOString();
     
     try {
-      await sql`
-        INSERT INTO todos (uuid, text, completed, created_at, updated_at)
-        VALUES (${newUuid}, ${text}, false, ${now}, ${now})
+      const result = await sql`
+        INSERT INTO todos (uuid, text, completed)
+        VALUES (${newUuid}, ${text}, false)
+        RETURNING uuid, text, completed, created_at, updated_at
       `;
       
+      const row = result.rows[0];
       return {
-        uuid: newUuid,
-        text: text,
-        completed: false,
-        createdAt: now,
-        updatedAt: now
+        uuid: row.uuid,
+        text: row.text,
+        completed: row.completed,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
       };
     } catch (error) {
       console.error('Failed to create todo:', error);
@@ -112,41 +107,31 @@ class TodoService {
   }
 
   async updateTodo(uuid, updateData) {
-    if (!this.initialized) {
-      await this.init();
-    }
+    await this.init();
     
     try {
-      // First, check if todo exists
       const existing = await this.getTodoByUuid(uuid);
       if (!existing) {
         return null;
       }
       
-      const updatedAt = new Date().toISOString();
-      let text = existing.text;
-      let completed = existing.completed;
+      const text = updateData.text !== undefined ? updateData.text.trim() : existing.text;
+      const completed = updateData.completed !== undefined ? Boolean(updateData.completed) : existing.completed;
       
-      // Update only provided fields
-      if (updateData.text !== undefined) {
-        text = updateData.text.trim();
-      }
-      if (updateData.completed !== undefined) {
-        completed = Boolean(updateData.completed);
-      }
-      
-      await sql`
+      const result = await sql`
         UPDATE todos 
-        SET text = ${text}, completed = ${completed}, updated_at = ${updatedAt}
+        SET text = ${text}, completed = ${completed}, updated_at = NOW()
         WHERE uuid = ${uuid}
+        RETURNING uuid, text, completed, created_at, updated_at
       `;
       
+      const row = result.rows[0];
       return {
-        uuid: uuid,
-        text: text,
-        completed: completed,
-        createdAt: existing.createdAt,
-        updatedAt: updatedAt
+        uuid: row.uuid,
+        text: row.text,
+        completed: row.completed,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
       };
     } catch (error) {
       console.error('Failed to update todo:', error);
@@ -155,9 +140,7 @@ class TodoService {
   }
 
   async deleteTodo(uuid) {
-    if (!this.initialized) {
-      await this.init();
-    }
+    await this.init();
     
     try {
       const { rowCount } = await sql`
@@ -172,9 +155,7 @@ class TodoService {
   }
 
   async clearAllTodos() {
-    if (!this.initialized) {
-      await this.init();
-    }
+    await this.init();
     
     try {
       await sql`DELETE FROM todos`;
