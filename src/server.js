@@ -64,4 +64,5 @@ if (require.main === module) {
   startServer();
 }
 
+// Export the app for Vercel
 module.exports = app;
