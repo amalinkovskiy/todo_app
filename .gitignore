@@ -118,3 +118,9 @@ temp/
 *.tmp
 .vercel
 .env*.local
+
+# Additional explicit env / secret files (do not commit)
+.env.production
+.env.prod-test
+.env.vercel-production
+.database.env
