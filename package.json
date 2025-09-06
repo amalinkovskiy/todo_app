@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "dev:vercel": "vercel dev",
+    "vercel:link": "vercel link",
+    "vercel:env": "vercel env pull .env.local",
     "test": "npx playwright test --workers=1",
     "test:api": "npx playwright test --project=\"API Tests\" --workers=1",
     "test:ui": "npx playwright test --project=\"UI Tests\" --workers=1",
@@ -16,6 +19,7 @@
     "mcp:help": "npx playwright mcp --help"
   },
   "dependencies": {
+    "@vercel/postgres": "^0.10.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^4.18.2",

@@ -1,66 +1,30 @@
-const fs = require('fs').promises;
-const path = require('path');
+const { sql } = require('@vercel/postgres');
 const { v4: uuidv4 } = require('uuid');
 const config = require('../config');
 
 class TodoService {
   constructor() {
-    this.dbPath = null;
-    this.data = { todos: [] };
     this.initialized = false;
   }
 
   async init() {
-    // Recalculate dbPath each time to pick up environment changes
-    const config = require('../config');
-    // Vercel has a read-only filesystem, except for /tmp.
-    // In production, we'll use the /tmp directory for our database file.
-    if (config.nodeEnv === 'production') {
-      this.dbPath = path.join('/tmp', path.basename(config.dbFile));
-    } else {
-      this.dbPath = path.resolve(config.dbFile);
-    }
-    
     try {
-      // Ensure directory exists
-      const dir = path.dirname(this.dbPath);
-      await fs.mkdir(dir, { recursive: true });
-
-      // Try to read existing file
-      try {
-        const fileContent = await fs.readFile(this.dbPath, 'utf8');
-        this.data = JSON.parse(fileContent);
-      } catch (error) {
-        // File doesn't exist or is invalid, create new one
-        await this.write();
-      }
+      // Create table if it doesn't exist
+      await sql`
+        CREATE TABLE IF NOT EXISTS todos (
+          uuid UUID PRIMARY KEY,
+          text VARCHAR(255) NOT NULL,
+          completed BOOLEAN DEFAULT false,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `;
       
       this.initialized = true;
+      console.log('Database initialized successfully');
     } catch (error) {
       console.error('Failed to initialize database:', error);
       throw error;
-    }
-  }
-
-  async write() {
-    try {
-      await fs.writeFile(this.dbPath, JSON.stringify(this.data, null, 2));
-    } catch (error) {
-      console.error('Failed to write to database:', error);
-      throw error;
-    }
-  }
-
-  async read() {
-    if (!this.initialized) {
-      await this.init();
-    }
-    try {
-      const fileContent = await fs.readFile(this.dbPath, 'utf8');
-      this.data = JSON.parse(fileContent);
-    } catch (error) {
-      // If file doesn't exist, keep current data
-      console.warn('Could not read database file, using current data');
     }
   }
 
@@ -68,88 +32,156 @@ class TodoService {
     if (!this.initialized) {
       await this.init();
     }
-    await this.read();
-    return this.data.todos.map(({ uuid, ...todo }) => ({
-      ...todo,
-      uuid, // Now we include UUID in the response
-    }));
+    
+    try {
+      const { rows } = await sql`
+        SELECT uuid, text, completed, created_at, updated_at 
+        FROM todos 
+        ORDER BY created_at DESC
+      `;
+      
+      return rows.map(row => ({
+        uuid: row.uuid,
+        text: row.text,
+        completed: row.completed,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+    } catch (error) {
+      console.error('Failed to get todos:', error);
+      throw error;
+    }
   }
 
   async getTodoByUuid(uuid) {
     if (!this.initialized) {
       await this.init();
     }
-    await this.read();
-    return this.data.todos.find((todo) => todo.uuid === uuid);
+    
+    try {
+      const { rows } = await sql`
+        SELECT uuid, text, completed, created_at, updated_at 
+        FROM todos 
+        WHERE uuid = ${uuid}
+      `;
+      
+      if (rows.length === 0) {
+        return null;
+      }
+      
+      const row = rows[0];
+      return {
+        uuid: row.uuid,
+        text: row.text,
+        completed: row.completed,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    } catch (error) {
+      console.error('Failed to get todo by UUID:', error);
+      throw error;
+    }
   }
 
   async createTodo(todoData) {
     if (!this.initialized) {
       await this.init();
     }
-    const newTodo = {
-      uuid: uuidv4(),
-      text: todoData.text.trim(),
-      completed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.data.todos.push(newTodo);
-    await this.write();
-
-    return newTodo;
+    
+    const newUuid = uuidv4();
+    const text = todoData.text.trim();
+    const now = new Date().toISOString();
+    
+    try {
+      await sql`
+        INSERT INTO todos (uuid, text, completed, created_at, updated_at)
+        VALUES (${newUuid}, ${text}, false, ${now}, ${now})
+      `;
+      
+      return {
+        uuid: newUuid,
+        text: text,
+        completed: false,
+        createdAt: now,
+        updatedAt: now
+      };
+    } catch (error) {
+      console.error('Failed to create todo:', error);
+      throw error;
+    }
   }
 
   async updateTodo(uuid, updateData) {
     if (!this.initialized) {
       await this.init();
     }
-    await this.read();
-    const todoIndex = this.data.todos.findIndex((t) => t.uuid === uuid);
-
-    if (todoIndex === -1) {
-      return null;
+    
+    try {
+      // First, check if todo exists
+      const existing = await this.getTodoByUuid(uuid);
+      if (!existing) {
+        return null;
+      }
+      
+      const updatedAt = new Date().toISOString();
+      let text = existing.text;
+      let completed = existing.completed;
+      
+      // Update only provided fields
+      if (updateData.text !== undefined) {
+        text = updateData.text.trim();
+      }
+      if (updateData.completed !== undefined) {
+        completed = Boolean(updateData.completed);
+      }
+      
+      await sql`
+        UPDATE todos 
+        SET text = ${text}, completed = ${completed}, updated_at = ${updatedAt}
+        WHERE uuid = ${uuid}
+      `;
+      
+      return {
+        uuid: uuid,
+        text: text,
+        completed: completed,
+        createdAt: existing.createdAt,
+        updatedAt: updatedAt
+      };
+    } catch (error) {
+      console.error('Failed to update todo:', error);
+      throw error;
     }
-
-    const todo = this.data.todos[todoIndex];
-
-    // Update only provided fields
-    if (updateData.text !== undefined) {
-      todo.text = updateData.text.trim();
-    }
-    if (updateData.completed !== undefined) {
-      todo.completed = Boolean(updateData.completed);
-    }
-
-    todo.updatedAt = new Date().toISOString();
-
-    await this.write();
-    return todo;
   }
 
   async deleteTodo(uuid) {
     if (!this.initialized) {
       await this.init();
     }
-    await this.read();
-    const todoIndex = this.data.todos.findIndex((t) => t.uuid === uuid);
-
-    if (todoIndex === -1) {
-      return false;
+    
+    try {
+      const { rowCount } = await sql`
+        DELETE FROM todos WHERE uuid = ${uuid}
+      `;
+      
+      return rowCount > 0;
+    } catch (error) {
+      console.error('Failed to delete todo:', error);
+      throw error;
     }
-
-    this.data.todos.splice(todoIndex, 1);
-    await this.write();
-    return true;
   }
 
   async clearAllTodos() {
     if (!this.initialized) {
       await this.init();
     }
-    this.data.todos = [];
-    await this.write();
+    
+    try {
+      await sql`DELETE FROM todos`;
+    } catch (error) {
+      console.error('Failed to clear todos:', error);
+      throw error;
+    }
   }
 }
 
