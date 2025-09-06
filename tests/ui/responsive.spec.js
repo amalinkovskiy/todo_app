@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test';
 import { TodoPage } from './page-objects/todo.page.js';
 
 test.describe('TODO Application Responsive Tests', () => {
+  const runId = Date.now();
   
-  test.beforeEach(async ({ request }) => {
-    // Очищаем данные перед каждым тестом
-    await request.delete('/api/test/clear');
+  test.beforeEach(async () => {
+    // No destructive cleanup in production
   });
   
   test('should work on mobile viewport', async ({ page }) => {
@@ -20,7 +20,7 @@ test.describe('TODO Application Responsive Tests', () => {
     await expect(todoPage.addButton).toBeVisible();
     
     // Добавляем задачу на мобильном
-    const todoText = 'Мобильная задача';
+  const todoText = `Мобильная задача ${runId}`;
     await todoPage.addTodo(todoText);
     
     // Проверяем, что задача отображается корректно
@@ -37,7 +37,7 @@ test.describe('TODO Application Responsive Tests', () => {
     await todoPage.waitForReady();
     
     // Добавляем несколько задач для проверки отображения
-    const todos = ['Планшет задача 1', 'Планшет задача 2'];
+  const todos = ['Планшет задача 1', 'Планшет задача 2'].map(t => `${t} ${runId}`);
     
     for (const todo of todos) {
       await todoPage.addTodo(todo);
@@ -64,7 +64,7 @@ test.describe('TODO Application Responsive Tests', () => {
     await expect(todoPage.title).toContainText('TODO List');
     
     // Тестируем функциональность на большом экране
-    await todoPage.addTodo('Десктопная задача');
+  await todoPage.addTodo(`Десктопная задача ${runId}`);
     
     const todoItem = todoPage.todoItems().first();
     await expect(todoItem).toBeVisible();

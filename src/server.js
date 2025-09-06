@@ -17,6 +17,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Lightweight request logging (method, path, status, duration)
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  // When response finishes, log details
+  res.on('finish', () => {
+    const durationNs = Number(process.hrtime.bigint() - start);
+    const durationMs = (durationNs / 1e6).toFixed(1);
+    // Avoid noisy logs for health checks (optional)
+    if (req.path === '/health') return;
+    console.log(`[req] ${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs}ms`);
+  });
+  next();
+});
+
 // Routes
 app.use('/api/todos', todoRoutes);
 

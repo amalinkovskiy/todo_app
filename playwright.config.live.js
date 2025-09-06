@@ -29,6 +29,16 @@ export default defineConfig({
   baseURL: 'https://exprimental.vercel.app',
       },
     },
+    {
+      name: 'Live Production UI Tests',
+      testMatch: /tests\/ui\/.*\.spec\.js/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'https://exprimental.vercel.app',
+        trace: 'retain-on-failure',
+        video: 'retain-on-failure'
+      },
+    },
   ],
 
   // No webServer needed - testing against live deployment

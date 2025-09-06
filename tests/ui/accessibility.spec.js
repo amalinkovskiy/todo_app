@@ -2,10 +2,9 @@ import { test, expect } from '@playwright/test';
 import { TodoPage } from './page-objects/todo.page.js';
 
 test.describe('TODO Application Accessibility Tests', () => {
-  
-  test.beforeEach(async ({ page, request }) => {
-    // Очищаем данные перед каждым тестом
-    await request.delete('/api/test/clear');
+  const runId = Date.now();
+
+  test.beforeEach(async ({ page }) => {
     const todoPage = new TodoPage(page);
     await todoPage.goto();
   });
@@ -36,9 +35,9 @@ test.describe('TODO Application Accessibility Tests', () => {
     await page.keyboard.press('Tab');
     await expect(todoPage.addButton).toBeFocused();
     
-    // Добавляем задачу с клавиатуры
-    await todoPage.input.focus();
-    await todoPage.input.type('Клавиатурная задача');
+  // Добавляем задачу с клавиатуры
+  await todoPage.input.focus();
+  await todoPage.input.type(`Клавиатурная задача ${runId}`);
     await page.keyboard.press('Enter');
     
     // Проверяем, что задача добавилась
@@ -49,7 +48,7 @@ test.describe('TODO Application Accessibility Tests', () => {
   test('should have accessible buttons with proper labels', async ({ page }) => {
     const todoPage = new TodoPage(page);
     // Добавляем задачу для тестирования кнопок
-    await todoPage.addTodo('Тестовая задача');
+  await todoPage.addTodo(`Тестовая задача ${runId}`);
     
     const todoItem = todoPage.todoItems().first();
     
@@ -66,7 +65,7 @@ test.describe('TODO Application Accessibility Tests', () => {
   test('should announce state changes for screen readers', async ({ page }) => {
     const todoPage = new TodoPage(page);
     // Добавляем задачу
-    await todoPage.addTodo('Задача для скрин ридера');
+  await todoPage.addTodo(`Задача для скрин ридера ${runId}`);
     
     const todoItem = todoPage.todoItems().first();
     const checkbox = todoPage.checkbox(todoItem);
@@ -83,7 +82,7 @@ test.describe('TODO Application Accessibility Tests', () => {
   test('should have proper color contrast', async ({ page }) => {
     const todoPage = new TodoPage(page);
     // Добавляем задачу для проверки стилей
-    await todoPage.addTodo('Контрастная задача');
+  await todoPage.addTodo(`Контрастная задача ${runId}`);
     
     const todoItem = todoPage.todoItems().first();
     
@@ -99,7 +98,7 @@ test.describe('TODO Application Accessibility Tests', () => {
   test('should support Escape key for modal closing', async ({ page }) => {
     const todoPage = new TodoPage(page);
     // Добавляем задачу
-    await todoPage.addTodo('Задача для Escape');
+  await todoPage.addTodo(`Задача для Escape ${runId}`);
     
     // Открываем модальное окно - используем first() для первой кнопки
     await todoPage.openDeleteModalByIndex(0);
@@ -113,7 +112,7 @@ test.describe('TODO Application Accessibility Tests', () => {
   test('should maintain focus management in modal', async ({ page }) => {
     const todoPage = new TodoPage(page);
     // Добавляем задачу
-    await todoPage.addTodo('Фокус тест');
+  await todoPage.addTodo(`Фокус тест ${runId}`);
     
     // Открываем модальное окно - используем first() для первой кнопки
     await todoPage.openDeleteModalByIndex(0);

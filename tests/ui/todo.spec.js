@@ -5,18 +5,13 @@ import { TodoPage } from './page-objects/todo.page.js';
 test.describe('TODO Application UI Tests', () => {
   let apiHelper;
   let todoPage;
+  const runId = Date.now();
   
   test.beforeEach(async ({ page, request }) => {
-    // Инициализируем API helper для подготовки данных
     apiHelper = new TodoApiHelper(request);
-    
-    // Очищаем базу данных перед каждым тестом
-    await apiHelper.clearAllTodos();
-    
-  // Инициализируем Page Object и подготавливаем UI
-  todoPage = new TodoPage(page);
-  await todoPage.goto();
-  await todoPage.waitForReady();
+    todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.waitForReady();
   });
 
   test('should display the application title', async ({ page }) => {
@@ -33,7 +28,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should add a new todo', async ({ page }) => {
-    const todoText = 'Купить молоко';
+  const todoText = `Купить молоко ${runId}`;
     
   // Добавляем задачу через Page Object
   await todoPage.addTodo(todoText);
@@ -49,7 +44,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should add todo with Enter key', async ({ page }) => {
-    const todoText = 'Сделать зарядку';
+  const todoText = `Сделать зарядку ${runId}`;
     
     // Вводим текст и нажимаем Enter
   await todoPage.addTodoWithEnter(todoText);
@@ -68,7 +63,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should toggle todo completion', async ({ page }) => {
-    const todoText = 'Прочитать книгу';
+  const todoText = `Прочитать книгу ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(todoText);
@@ -93,8 +88,8 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should edit todo text', async ({ page }) => {
-    const originalText = 'Оригинальная задача';
-    const editedText = 'Отредактированная задача';
+  const originalText = `Оригинальная задача ${runId}`;
+  const editedText = `Отредактированная задача ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(originalText);
@@ -115,8 +110,8 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should cancel edit with Escape', async ({ page }) => {
-    const originalText = 'Неизменная задача';
-    const tempText = 'Временный текст';
+  const originalText = `Неизменная задача ${runId}`;
+  const tempText = `Временный текст ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(originalText);
@@ -136,7 +131,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should delete todo with confirmation modal', async ({ page }) => {
-    const todoText = 'Задача для удаления';
+  const todoText = `Задача для удаления ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(todoText);
@@ -155,7 +150,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should cancel todo deletion', async ({ page }) => {
-    const todoText = 'Задача остается';
+  const todoText = `Задача остается ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(todoText);
@@ -172,7 +167,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should close modal by clicking outside', async ({ page }) => {
-    const todoText = 'Тестовая задача';
+  const todoText = `Тестовая задача ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(todoText);
@@ -184,7 +179,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should handle multiple todos', async ({ page }) => {
-    const todos = ['Первая задача', 'Вторая задача', 'Третья задача'];
+  const todos = ['Первая задача', 'Вторая задача', 'Третья задача'].map(t => `${t} ${runId}`);
     
     // Добавляем несколько задач
     for (const todo of todos) {
@@ -213,9 +208,9 @@ test.describe('TODO Application UI Tests', () => {
 
   test('should display pre-created todos from API', async ({ page }) => {
     // Создаем задачи через API перед загрузкой страницы
-    await apiHelper.createTodo('API созданная задача 1');
-    await apiHelper.createTodo('API созданная задача 2', true); // выполненная
-    await apiHelper.createTodo('API созданная задача 3');
+  await apiHelper.createTodo(`API созданная задача 1 ${runId}`);
+  await apiHelper.createTodo(`API созданная задача 2 ${runId}`, true);
+  await apiHelper.createTodo(`API созданная задача 3 ${runId}`);
     
     // Перезагружаем страницу для получения данных с сервера
   await page.reload();
@@ -226,30 +221,30 @@ test.describe('TODO Application UI Tests', () => {
   await expect(todoItems.nth(1)).toHaveClass(/completed/);
   await expect(todoPage.checkbox(todoItems.nth(1))).toBeChecked();
     
-  await expect(todoPage.todoText(todoItems.nth(0))).toContainText('API созданная задача 1');
-  await expect(todoPage.todoText(todoItems.nth(1))).toContainText('API созданная задача 2');
-  await expect(todoPage.todoText(todoItems.nth(2))).toContainText('API созданная задача 3');
+  await expect(todoPage.todoText(todoItems.nth(0))).toContainText(`API созданная задача 1 ${runId}`);
+  await expect(todoPage.todoText(todoItems.nth(1))).toContainText(`API созданная задача 2 ${runId}`);
+  await expect(todoPage.todoText(todoItems.nth(2))).toContainText(`API созданная задача 3 ${runId}`);
   });
 
   test('should integrate UI actions with API state', async ({ page }) => {
     // Создаем задачу через API
-    const apiTodo = await apiHelper.createTodo('Задача из API');
+  const apiTodo = await apiHelper.createTodo(`Задача из API ${runId}`);
     
     // Перезагружаем страницу
   await page.reload();
   await todoPage.todoItems().first().waitFor();
     
   const todoItem = todoPage.todoItems().first();
-  await expect(todoPage.todoText(todoItem)).toContainText('Задача из API');
+  await expect(todoPage.todoText(todoItem)).toContainText(`Задача из API ${runId}`);
     
   await todoPage.startEditByIndex(0);
   const editInput = todoPage.editInput();
-  await editInput.fill('Измененная через UI задача');
-  await todoPage.saveEditByIndex(0, 'Измененная через UI задача');
+  await editInput.fill(`Измененная через UI задача ${runId}`);
+  await todoPage.saveEditByIndex(0, `Измененная через UI задача ${runId}`);
     
     // Проверяем изменения через API
     const updatedTodo = await apiHelper.getTodoByUuid(apiTodo.uuid);
-    expect(updatedTodo.text).toBe('Измененная через UI задача');
+  expect(updatedTodo.text).toBe(`Измененная через UI задача ${runId}`);
     expect(updatedTodo.completed).toBe(false);
     
     // Отмечаем как выполненную через UI
