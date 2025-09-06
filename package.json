@@ -15,6 +15,11 @@
     "test:headed": "npx playwright test --project=\"UI Tests\" --headed",
     "test:debug": "npx playwright test --project=\"UI Tests\" --debug",
     "test:report": "npx playwright show-report",
+    "db:setup": "powershell -ExecutionPolicy Bypass -File scripts/db-test.ps1 setup",
+    "db:start": "powershell -ExecutionPolicy Bypass -File scripts/db-test.ps1 start",
+    "db:stop": "powershell -ExecutionPolicy Bypass -File scripts/db-test.ps1 stop",
+    "db:status": "powershell -ExecutionPolicy Bypass -File scripts/db-test.ps1 status",
+    "db:logs": "powershell -ExecutionPolicy Bypass -File scripts/db-test.ps1 logs",
     "mcp:generate": "npx playwright mcp",
     "mcp:help": "npx playwright mcp --help"
   },
@@ -25,11 +30,13 @@
     "express": "^4.18.2",
     "joi": "^18.0.1",
     "lowdb": "^5.1.0",
+    "pg": "^8.16.3",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@playwright/mcp": "^0.0.35",
     "@playwright/test": "^1.55.0",
+    "@types/pg": "^8.15.5",
     "eslint": "^9.34.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",

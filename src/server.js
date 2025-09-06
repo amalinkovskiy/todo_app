@@ -1,6 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const dotenv = require('dotenv');
+
+// Load environment variables from .env.local
+dotenv.config({ path: path.resolve(__dirname, '..', '.env.local') });
+
 const config = require('./config');
 const todoRoutes = require('./api/todo.routes');
 const { errorHandler, notFound } = require('./middlewares/errorHandler');

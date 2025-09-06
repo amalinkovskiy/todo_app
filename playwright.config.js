@@ -1,4 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Read from default ".env" file.
+dotenv.config();
+
+// Read from ".env.local" file.
+dotenv.config({ path: path.resolve(__dirname, '.env.local') });
+
+// Read from ".env.test" file for test-specific variables
+dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -21,7 +32,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3002',
+    baseURL: `http://localhost:${process.env.PORT || 3000}`,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -34,7 +45,7 @@ export default defineConfig({
       testMatch: /tests\/api\/.*\.spec\.js/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://localhost:${process.env.PORT || 3002}`,
+        baseURL: `http://localhost:${process.env.PORT || 3000}`,
       },
     },
     {
@@ -42,19 +53,20 @@ export default defineConfig({
       testMatch: /tests\/ui\/.*\.spec\.js/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://localhost:${process.env.PORT || 3002}`,
+        baseURL: `http://localhost:${process.env.PORT || 3000}`,
       },
     },
   ],
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm start',
-    url: 'http://localhost:3002',
+    command: 'npm run dev',
+    url: `http://localhost:${process.env.PORT || 3000}`,
     reuseExistingServer: !process.env.CI,
     env: {
+      ...process.env,
       NODE_ENV: 'test',
-      PORT: '3002'
+      PORT: '3000'
     },
     timeout: 120 * 1000, // Увеличим таймаут для запуска сервера
   },

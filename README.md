@@ -17,10 +17,11 @@
 ### 🏗️ Architecture
 - ✅ Node.js + Express.js (MVC)
 - ✅ Server-side rendering (EJS)
-- ✅ Data stored in a JSON file
+- ✅ PostgreSQL database with dual-environment support
 - ✅ Data validation using `express-validator`
 - ✅ Test environment setup (`.env.test`)
 - ✅ Responsive UI with modals
+- ✅ Podman containerization for local development
 
 ### 🧪 Testing
 - **Single test framework:** Playwright for both API and UI tests.
@@ -52,6 +53,39 @@ This keeps the main test suite clean while leveraging MCP for routine work.
 npm install
 ```
 
+### 🗄️ Database Setup
+
+**Prerequisites**: Install [Podman](https://podman.io/getting-started/installation) for containerized PostgreSQL.
+
+#### Quick Setup
+```powershell
+# Start PostgreSQL container
+npm run db:start
+
+# Check database status
+npm run db:status
+
+# View database logs
+npm run db:logs
+
+# Stop database
+npm run db:stop
+```
+
+#### Manual Setup
+```powershell
+# Create and start PostgreSQL container
+podman run --name postgres-todo-test -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=testpass -e POSTGRES_DB=todo_test -p 5433:5432 -d postgres:15
+
+# Initialize test database
+npm run db:setup
+```
+
+**Environment Configuration**:
+- **Development**: Uses local PostgreSQL container (`postgresql://testuser:testpass@localhost:5433/todo_test`)
+- **Production**: Uses Vercel Postgres (configured via environment variables)
+- **Auto-detection**: Based on `NODE_ENV=test` or localhost in `POSTGRES_URL`
+
 ### 🚀 Run
 ```bash
 npm run dev
@@ -60,12 +94,20 @@ App available at `http://localhost:3000`.
 
 ### 🧪 Testing
 ```bash
-npm test             # Run all API and UI tests
-npm run test:api     # API tests only
-npm run test:ui      # UI tests only
-npm run test:headed  # UI tests with browser
-npm run test:debug   # Debug UI tests
-npm run test:report  # Open HTML report
+# Database Management
+npm run db:start         # Start PostgreSQL container
+npm run db:stop          # Stop PostgreSQL container
+npm run db:status        # Check database status
+npm run db:logs          # View database logs
+npm run db:setup         # Initialize database
+
+# Test Execution
+npm test                 # Run all API and UI tests (19 API + UI tests)
+npm run test:api         # API tests only (19 tests)
+npm run test:ui          # UI tests only
+npm run test:headed      # UI tests with browser
+npm run test:debug       # Debug UI tests
+npm run test:report      # Open HTML report
 ```
 
 ### 🎭 Playwright MCP
@@ -80,8 +122,13 @@ npm run mcp:generate  # Generate tests
 ├── 📁 .vscode/
 │   └── settings.json
 ├── 📁 data/
-│   ├── todos.json
-│   └── todos.test.json
+│   ├── todos.json          # Legacy JSON storage
+│   └── todos.test.json     # Test data backup
+├── 📁 docs/
+│   ├── database-setup.md   # Database configuration guide
+│   └── playwright-mcp-guide.md
+├── 📁 scripts/
+│   └── db-test.ps1         # Database management automation
 ├── 📁 node_modules/
 ├── 📁 public/
 │   └── css/
@@ -96,7 +143,7 @@ npm run mcp:generate  # Generate tests
 │   ├── 📁 routes/
 │   │   └── todo.routes.js
 │   ├── 📁 services/
-│   │   └── todo.service.js
+│   │   └── todo.service.js  # Dual database support (PostgreSQL + Vercel)
 │   ├── 📁 utils/
 │   │   └── validation.js
 │   ├── 📁 views/
@@ -108,17 +155,15 @@ npm run mcp:generate  # Generate tests
 │   └── server.js
 ├── 📁 tests/
 │   ├── 📁 api/
-│   │   └── todos.spec.js
+│   │   └── todos.spec.js    # 19 comprehensive API tests
 │   ├── 📁 ui/
 │   │   ├── todo.spec.js
 │   │   ├── responsive.spec.js
 │   │   └── accessibility.spec.js
-│   ├── api-helpers.js          # API request utilities for tests
-│   └── global-setup.js         # Global setup
-├── scripts/
-│   └── cleanup-db.js
-├── .env
-├── .env.test
+│   ├── api-helpers.js       # API request utilities for tests
+│   └── global-setup.js      # Global setup
+├── .env                     # Production environment
+├── .env.test               # Test environment (PostgreSQL)
 ├── .gitignore
 ├── package.json
 ├── package-lock.json
