@@ -13,7 +13,13 @@ class TodoService {
   async init() {
     // Recalculate dbPath each time to pick up environment changes
     const config = require('../config');
-    this.dbPath = path.resolve(config.dbFile);
+    // Vercel has a read-only filesystem, except for /tmp.
+    // In production, we'll use the /tmp directory for our database file.
+    if (config.nodeEnv === 'production') {
+      this.dbPath = path.join('/tmp', path.basename(config.dbFile));
+    } else {
+      this.dbPath = path.resolve(config.dbFile);
+    }
     
     try {
       // Ensure directory exists
