@@ -63,6 +63,7 @@ const validateBody = (schema) => {
         status: 'error',
         statusCode: 400,
         message: 'Ошибка валидации',
+        error: 'Ошибка валидации', // backward compatibility field
         errors
       });
     }
@@ -90,6 +91,7 @@ const validateParams = (schema) => {
         status: 'error',
         statusCode: 400,
         message: 'Ошибка валидации параметров',
+        error: 'Ошибка валидации параметров', // backward compatibility
         errors
       });
     }
