@@ -76,7 +76,7 @@ class TodoController {
         });
       }
 
-      res.status(204).send();
+  res.status(200).json({ message: 'Todo deleted' });
     } catch (error) {
       next(error);
     }
@@ -85,7 +85,7 @@ class TodoController {
   async clearAllTodos(req, res, next) {
     try {
       await todoService.clearAllTodos();
-      res.status(204).send();
+  res.status(200).json({ message: 'All todos cleared' });
     } catch (error) {
       next(error);
     }
