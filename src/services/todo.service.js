@@ -2,8 +2,6 @@ const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
-const { Low } = require('lowdb');
-const { JSONFile } = require('lowdb/node');
 
 class TodoService {
   constructor() {
@@ -35,17 +33,19 @@ class TodoService {
     }
 
     if (useFileDb) {
-      // File-based fallback using lowdb (only for local dev & tests, not serverless)
+      // Simple JSON file fallback (no lowdb dependency for serverless compatibility)
       const dataDir = path.resolve(__dirname, '..', '..', 'data');
       if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-      const file = path.join(dataDir, 'todos.json');
-      this.adapter = new JSONFile(file);
-      this.db = new Low(this.adapter, { todos: [] });
-      await this.db.read();
-      this.db.data ||= { todos: [] };
+      this.dataFile = path.join(dataDir, 'todos.json');
+      
+      // Initialize empty file if doesn't exist
+      if (!fs.existsSync(this.dataFile)) {
+        fs.writeFileSync(this.dataFile, JSON.stringify({ todos: [] }));
+      }
+      
       this.fileMode = true;
       this.initialized = true;
-      console.warn('[storage] Using lowdb JSON file storage fallback (no database URL provided)');
+      console.warn('[storage] Using simple JSON file storage fallback (no database URL provided)');
       return;
     }
 
@@ -93,7 +93,8 @@ class TodoService {
     await this.init();
     
     if (this.fileMode) {
-      return this.db.data.todos
+      const data = JSON.parse(fs.readFileSync(this.dataFile, 'utf8'));
+      return (data.todos || [])
         .slice()
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
@@ -127,7 +128,8 @@ class TodoService {
     await this.init();
     
     if (this.fileMode) {
-      const todo = this.db.data.todos.find(t => t.uuid === uuid);
+      const data = JSON.parse(fs.readFileSync(this.dataFile, 'utf8'));
+      const todo = (data.todos || []).find(t => t.uuid === uuid);
       return todo || null;
     }
     if (this.memoryMode) {
@@ -160,8 +162,10 @@ class TodoService {
     if (this.fileMode) {
       const now = new Date().toISOString();
       const todo = { uuid: newUuid, text, completed: false, createdAt: now, updatedAt: now };
-      this.db.data.todos.push(todo);
-      await this.db.write();
+      const data = JSON.parse(fs.readFileSync(this.dataFile, 'utf8'));
+      data.todos = data.todos || [];
+      data.todos.push(todo);
+      fs.writeFileSync(this.dataFile, JSON.stringify(data, null, 2));
       return todo;
     }
     if (this.memoryMode) {
@@ -196,9 +200,15 @@ class TodoService {
 
     if (this.fileMode) {
       const now = new Date().toISOString();
-      Object.assign(existing, { text, completed, updatedAt: now });
-      await this.db.write();
-      return existing;
+      const data = JSON.parse(fs.readFileSync(this.dataFile, 'utf8'));
+      data.todos = data.todos || [];
+      const todo = data.todos.find(t => t.uuid === uuid);
+      if (todo) {
+        Object.assign(todo, { text, completed, updatedAt: now });
+        fs.writeFileSync(this.dataFile, JSON.stringify(data, null, 2));
+        return todo;
+      }
+      return null;
     }
     if (this.memoryMode) {
       const now = new Date().toISOString();
@@ -227,11 +237,16 @@ class TodoService {
     await this.init();
     
     if (this.fileMode) {
-      const before = this.db.data.todos.length;
-      this.db.data.todos = this.db.data.todos.filter(t => t.uuid !== uuid);
-      const after = this.db.data.todos.length;
-      await this.db.write();
-      return after < before;
+      const data = JSON.parse(fs.readFileSync(this.dataFile, 'utf8'));
+      data.todos = data.todos || [];
+      const before = data.todos.length;
+      data.todos = data.todos.filter(t => t.uuid !== uuid);
+      const after = data.todos.length;
+      if (after < before) {
+        fs.writeFileSync(this.dataFile, JSON.stringify(data, null, 2));
+        return true;
+      }
+      return false;
     }
     if (this.memoryMode) {
       const before = this.memory.todos.length;
@@ -256,8 +271,8 @@ class TodoService {
     await this.init();
     
     if (this.fileMode) {
-      this.db.data.todos = [];
-      await this.db.write();
+      const data = { todos: [] };
+      fs.writeFileSync(this.dataFile, JSON.stringify(data, null, 2));
       return;
     }
     if (this.memoryMode) {
