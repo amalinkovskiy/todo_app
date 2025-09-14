@@ -38,14 +38,30 @@ app.use('/api/todos', todoRoutes);
 // Health check
 app.get('/health', async (req, res) => {
   const todoService = require('./services/todo.service');
-  const result = await todoService.healthCheck();
-  const statusCode = result.ok && result.db ? 200 : 503;
-  res.status(statusCode).json({
-    status: result.ok ? 'ok' : 'error',
-    db: result.db,
-    timestamp: new Date().toISOString(),
-    ...(result.error ? { error: result.error } : {})
-  });
+  try {
+    const result = await todoService.healthCheck();
+    const statusCode = result.ok && result.db ? 200 : 503;
+    // Add diagnostic headers (non-sensitive)
+    res.setHeader('X-Storage-Mode', result.storage || 'unknown');
+    res.setHeader('X-DB-Fallback', String(result.fallbackActivated || false));
+    if (result.lastDbError) res.setHeader('X-Last-Db-Error', encodeURIComponent(result.lastDbError.slice(0,120)));
+    if (process.env.DEBUG_HEALTH === '1') {
+      // Expose which connection env was detected (not the value)
+      res.setHeader('X-Conn-Env', process.env.POSTGRES_URL ? 'POSTGRES_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'none'));
+    }
+    return res.status(statusCode).json({
+      status: result.ok ? 'ok' : 'error',
+      db: result.db,
+      storage: result.storage,
+      fallbackActivated: result.fallbackActivated,
+      timestamp: new Date().toISOString(),
+      ...(result.error ? { error: result.error } : {}),
+      ...(result.lastDbError && !result.error ? { lastDbError: result.lastDbError } : {})
+    });
+  } catch (err) {
+    console.error('[health] unexpected error', err);
+    res.status(500).json({ status: 'error', message: 'health check failed', timestamp: new Date().toISOString() });
+  }
 });
 
 // Test routes (only in test environment)

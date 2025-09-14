@@ -9,14 +9,33 @@ class TodoService {
   constructor() {
     this.initialized = false;
     this.pool = null;
+    this.fileMode = false;
+    this.memoryMode = false;
+    this.lastDbError = null;
+    this.fallbackActivated = false;
   }
 
   async init() {
     if (this.initialized) return;
 
-    const useFileDb = !process.env.POSTGRES_URL || process.env.NODE_ENV === 'test';
+  const isServerless = !!process.env.VERCEL; // Vercel sets this env variable
+  // Support both POSTGRES_URL and DATABASE_URL (common on hosts)
+  const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+  const noPostgres = !connectionString;
+  const useMemoryDb = isServerless && noPostgres; // serverless + no DB URL => in-memory only
+  const useFileDb = !useMemoryDb && (noPostgres || process.env.NODE_ENV === 'test');
+
+    if (useMemoryDb) {
+      // Pure in-memory store (safe for serverless, non-persistent)
+      this.memory = { todos: [] };
+      this.memoryMode = true;
+      this.initialized = true;
+      console.warn('[storage] Using in-memory storage (serverless fallback) – no DATABASE_URL/POSTGRES_URL set');
+      return;
+    }
+
     if (useFileDb) {
-      // File-based fallback using lowdb
+      // File-based fallback using lowdb (only for local dev & tests, not serverless)
       const dataDir = path.resolve(__dirname, '..', '..', 'data');
       if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
       const file = path.join(dataDir, 'todos.json');
@@ -26,12 +45,20 @@ class TodoService {
       this.db.data ||= { todos: [] };
       this.fileMode = true;
       this.initialized = true;
-      console.log('Using lowdb JSON file storage (fallback mode)');
+      console.warn('[storage] Using lowdb JSON file storage fallback (no database URL provided)');
       return;
     }
 
     // Postgres mode
-    this.pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+    // On some managed platforms SSL is required; allow opt-out via DISABLE_DB_SSL
+    const sslRequired = isServerless && !process.env.DISABLE_DB_SSL;
+    this.pool = new Pool({
+      connectionString,
+      ssl: sslRequired ? { rejectUnauthorized: false } : undefined,
+      connectionTimeoutMillis: parseInt(process.env.PG_CONNECTION_TIMEOUT || '5000', 10),
+      idleTimeoutMillis: parseInt(process.env.PG_IDLE_TIMEOUT || '30000', 10),
+      max: parseInt(process.env.PG_POOL_MAX || '5', 10)
+    });
     try {
       const client = await this.pool.connect();
       await client.query(`
@@ -45,10 +72,20 @@ class TodoService {
       `);
       client.release();
       this.initialized = true;
-      console.log('Database initialized (single pg Pool)');
+      console.log(`[storage] Database initialized (${sslRequired ? 'ssl' : 'plain'} connection)`);
     } catch (error) {
-      console.error('Failed to initialize database:', error);
-      throw error;
+      this.lastDbError = error.message;
+      const requireDb = process.env.REQUIRE_DATABASE === '1';
+      if (requireDb) {
+        console.error('Failed to initialize database (REQUIRE_DATABASE=1):', error);
+        throw error; // hard fail
+      }
+      // Graceful fallback to in-memory if allowed
+      console.warn('[storage] Database init failed, falling back to in-memory storage:', error.message);
+      this.memory = { todos: [] };
+      this.memoryMode = true;
+      this.fallbackActivated = true;
+      this.initialized = true;
     }
   }
 
@@ -57,6 +94,11 @@ class TodoService {
     
     if (this.fileMode) {
       return this.db.data.todos
+        .slice()
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    if (this.memoryMode) {
+      return this.memory.todos
         .slice()
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
@@ -86,6 +128,10 @@ class TodoService {
     
     if (this.fileMode) {
       const todo = this.db.data.todos.find(t => t.uuid === uuid);
+      return todo || null;
+    }
+    if (this.memoryMode) {
+      const todo = this.memory.todos.find(t => t.uuid === uuid);
       return todo || null;
     }
     try {
@@ -118,6 +164,12 @@ class TodoService {
       await this.db.write();
       return todo;
     }
+    if (this.memoryMode) {
+      const now = new Date().toISOString();
+      const todo = { uuid: newUuid, text, completed: false, createdAt: now, updatedAt: now };
+      this.memory.todos.push(todo);
+      return todo;
+    }
     try {
       const client = await this.pool.connect();
       const result = await client.query(`
@@ -148,6 +200,11 @@ class TodoService {
       await this.db.write();
       return existing;
     }
+    if (this.memoryMode) {
+      const now = new Date().toISOString();
+      Object.assign(existing, { text, completed, updatedAt: now });
+      return existing;
+    }
     try {
       const client = await this.pool.connect();
       const result = await client.query(`
@@ -176,6 +233,12 @@ class TodoService {
       await this.db.write();
       return after < before;
     }
+    if (this.memoryMode) {
+      const before = this.memory.todos.length;
+      this.memory.todos = this.memory.todos.filter(t => t.uuid !== uuid);
+      const after = this.memory.todos.length;
+      return after < before;
+    }
     try {
       const client = await this.pool.connect();
       const result = await client.query(`
@@ -197,6 +260,10 @@ class TodoService {
       await this.db.write();
       return;
     }
+    if (this.memoryMode) {
+      this.memory.todos = [];
+      return;
+    }
     try {
       const client = await this.pool.connect();
       await client.query('DELETE FROM todos');
@@ -207,18 +274,27 @@ class TodoService {
     }
   }
   async healthCheck() {
+    if (!this.initialized) {
+      try { await this.init(); } catch (_) { /* init handles fallback */ }
+    }
+    const base = {
+      fallbackActivated: this.fallbackActivated,
+      lastDbError: this.lastDbError || null
+    };
     if (this.fileMode) {
-      if (!this.initialized) await this.init();
-      return { ok: true, db: true, storage: 'file' };
+      return { ok: true, db: true, storage: 'file', ...base };
+    }
+    if (this.memoryMode) {
+      return { ok: true, db: true, storage: 'memory', ...base };
     }
     try {
-      if (!this.initialized) await this.init();
       const client = await this.pool.connect();
       const result = await client.query('SELECT 1 as ok');
       client.release();
-      return { ok: true, db: result.rows[0].ok === 1, storage: 'postgres' };
+      return { ok: true, db: result.rows[0].ok === 1, storage: 'postgres', ...base };
     } catch (error) {
-      return { ok: false, db: false, error: error.message };
+      this.lastDbError = error.message;
+      return { ok: false, db: false, storage: 'postgres', error: error.message, ...base };
     }
   }
 }
