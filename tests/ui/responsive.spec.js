@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { TodoPage } from './page-objects/todo.page.js';
+import { TodoPage } from './page-objects/todo.page';
 
 test.describe('TODO Application Responsive Tests', () => {
   const runId = Date.now();

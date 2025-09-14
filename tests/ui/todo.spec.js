@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { TodoApiHelper } from '../helpers/api-helpers.js';
-import { TodoPage } from './page-objects/todo.page.js';
+import { TodoApiHelper } from '../helpers/api-helpers';
+import { TodoPage } from './page-objects/todo.page';
 
 test.describe('TODO Application UI Tests', () => {
   let apiHelper;
