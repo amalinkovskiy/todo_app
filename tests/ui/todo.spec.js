@@ -7,12 +7,14 @@ test.describe('TODO Application UI Tests', () => {
   let todoPage;
   const runId = Date.now();
   
-  test.beforeEach(async ({ page, request }) => {
-    apiHelper = new TodoApiHelper(request);
-    todoPage = new TodoPage(page);
-    await todoPage.goto();
-    await todoPage.waitForReady();
-  });
+    test.beforeEach(async ({ page, request }) => {
+      // Ensure clean state (test environment exposes /api/test/clear)
+      await request.delete('/api/test/clear');
+      apiHelper = new TodoApiHelper(request);
+      todoPage = new TodoPage(page);
+      await todoPage.goto();
+      await todoPage.waitForReady();
+    });
 
   test('should display the application title', async ({ page }) => {
     // Проверяем заголовок страницы
@@ -208,22 +210,40 @@ test.describe('TODO Application UI Tests', () => {
 
   test('should display pre-created todos from API', async ({ page }) => {
     // Создаем задачи через API перед загрузкой страницы
-  await apiHelper.createTodo(`API созданная задача 1 ${runId}`);
-  await apiHelper.createTodo(`API созданная задача 2 ${runId}`, true);
-  await apiHelper.createTodo(`API созданная задача 3 ${runId}`);
-    
+    const texts = [
+      `API созданная задача 1 ${runId}`,
+      `API созданная задача 2 ${runId}`,
+      `API созданная задача 3 ${runId}`
+    ];
+    await apiHelper.createTodo(texts[0]);
+    await apiHelper.createTodo(texts[1], true); // completed true
+    await apiHelper.createTodo(texts[2]);
+
     // Перезагружаем страницу для получения данных с сервера
-  await page.reload();
-  await todoPage.todoItems().first().waitFor();
-    
-  const todoItems = todoPage.todoItems();
-  await expect(todoItems).toHaveCount(3);
-  await expect(todoItems.nth(1)).toHaveClass(/completed/);
-  await expect(todoPage.checkbox(todoItems.nth(1))).toBeChecked();
-    
-  await expect(todoPage.todoText(todoItems.nth(0))).toContainText(`API созданная задача 1 ${runId}`);
-  await expect(todoPage.todoText(todoItems.nth(1))).toContainText(`API созданная задача 2 ${runId}`);
-  await expect(todoPage.todoText(todoItems.nth(2))).toContainText(`API созданная задача 3 ${runId}`);
+    await page.reload();
+    await todoPage.todoItems().first().waitFor();
+
+    const todoItems = todoPage.todoItems();
+    await expect(todoItems).toHaveCount(3);
+
+    // Собираем тексты фактически отображаемых элементов (порядок может отличаться в зависимости от backend сортировки)
+    const renderedTexts = [];
+    for (let i = 0; i < 3; i++) {
+      renderedTexts.push(await todoPage.todoText(todoItems.nth(i)).textContent());
+    }
+
+    // Проверяем, что все ожидаемые тексты присутствуют без учета порядка
+    for (const t of texts) {
+      expect(renderedTexts.some(rt => rt.includes(t))).toBeTruthy();
+    }
+
+    // Находим элемент завершенной задачи по тексту (вместо фиксированного индекса)
+    const completedLocator = todoItems.filter({ has: page.locator('.todo-text', { hasText: texts[1] }) });
+    // Убеждаемся, что один такой элемент есть
+    await expect(completedLocator).toHaveCount(1);
+    // Проверяем, что у него есть класс completed и чекбокс отмечен
+    await expect(completedLocator.first()).toHaveClass(/completed/);
+    await expect(completedLocator.first().locator('input[type="checkbox"]').first()).toBeChecked();
   });
 
   test('should integrate UI actions with API state', async ({ page }) => {

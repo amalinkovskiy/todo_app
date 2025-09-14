@@ -75,8 +75,8 @@ class TodoController {
           message: 'Todo not found',
         });
       }
-
-  res.status(200).json({ message: 'Todo deleted' });
+    // Return canonical 204 No Content for successful deletion
+    return res.status(204).send();
     } catch (error) {
       next(error);
     }

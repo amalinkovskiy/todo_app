@@ -124,3 +124,6 @@ temp/
 .env.prod-test
 .env.vercel-production
 .database.env
+
+# Project documentation (kept local only)
+architecture.md

@@ -4,9 +4,9 @@ import { TodoPage } from './page-objects/todo.page.js';
 test.describe('TODO Application Responsive Tests', () => {
   const runId = Date.now();
   
-  test.beforeEach(async () => {
-    // No destructive cleanup in production
-  });
+    test.beforeEach(async ({ request }) => {
+      await request.delete('/api/test/clear');
+    });
   
   test('should work on mobile viewport', async ({ page }) => {
     // Устанавливаем мобильный viewport

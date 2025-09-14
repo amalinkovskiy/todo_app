@@ -4,10 +4,11 @@ import { TodoPage } from './page-objects/todo.page.js';
 test.describe('TODO Application Accessibility Tests', () => {
   const runId = Date.now();
 
-  test.beforeEach(async ({ page }) => {
-    const todoPage = new TodoPage(page);
-    await todoPage.goto();
-  });
+    test.beforeEach(async ({ page, request }) => {
+      await request.delete('/api/test/clear');
+      const todoPage = new TodoPage(page);
+      await todoPage.goto();
+    });
 
   test('should have proper heading structure', async ({ page }) => {
     const todoPage = new TodoPage(page);

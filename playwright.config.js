@@ -60,7 +60,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
+    // Direct server start (no nodemon) for stability in automated test runs
+    command: 'node src/server.js',
     url: `http://localhost:${process.env.PORT || 3000}`,
     reuseExistingServer: !process.env.CI,
     env: {
@@ -68,6 +69,6 @@ export default defineConfig({
       NODE_ENV: 'test',
       PORT: '3000'
     },
-    timeout: 120 * 1000, // Увеличим таймаут для запуска сервера
+    timeout: 120 * 1000,
   },
 });

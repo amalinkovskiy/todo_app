@@ -144,6 +144,10 @@ class TodoApp {
     this.modalTaskName.textContent = todo.text;
     this.deleteModal.style.display = 'block';
     document.body.style.overflow = 'hidden';
+    // Accessibility: move focus into modal (confirm button as primary action)
+    setTimeout(() => {
+      this.confirmDeleteBtn?.focus();
+    }, 0);
   }
 
   closeDeleteModal() {

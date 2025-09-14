@@ -103,15 +103,12 @@ test.describe('Production Todo API Tests', () => {
     });
     const createdTodo = await createResponse.json();
     
-    // Delete it
+    // Delete it (must return 204 No Content per spec)
     const response = await request.delete(`${baseURL}/api/todos/${createdTodo.uuid}`);
-    expect(response.status()).toBe(200);
-    
-    const result = await response.json();
-    expect(result).toHaveProperty('message');
+    expect(response.status()).toBe(204);
     
     // Verify it's deleted
-    const getResponse = await request.get(`${baseURL}/api/todos/${createdTodo.uuid}`);
+  const getResponse = await request.get(`${baseURL}/api/todos/${createdTodo.uuid}`);
     expect(getResponse.status()).toBe(404);
   });
 
