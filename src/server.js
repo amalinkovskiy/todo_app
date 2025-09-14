@@ -64,6 +64,21 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Simplified diagnostic endpoint (bypasses health complexity)
+app.get('/diag', (req, res) => {
+  try {
+    const env = {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: !!process.env.VERCEL,
+      hasPostgresUrl: !!process.env.POSTGRES_URL,
+      hasDatabaseUrl: !!process.env.DATABASE_URL
+    };
+    res.json({ status: 'diag-ok', env, timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ status: 'diag-error', error: err.message });
+  }
+});
+
 // Test routes (only in test environment)
 if (process.env.NODE_ENV === 'test') {
   const testRoutes = require('./api/test.routes');
