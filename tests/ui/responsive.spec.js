@@ -5,7 +5,7 @@ test.describe('TODO Application Responsive Tests', () => {
   const runId = Date.now();
   
     test.beforeEach(async ({ request }) => {
-      await request.delete('/api/test/clear');
+      await request.delete('/api/todos');
     });
   
   test('should work on mobile viewport', async ({ page }) => {

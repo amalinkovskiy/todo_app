@@ -34,6 +34,21 @@ async function globalSetup(config: FullConfig): Promise<void> {
     const response = await fetch(`${baseURL}/api/health`);
     if (response.ok) {
       console.log('✅ Сервер доступен');
+      
+      // Очищаем все данные перед запуском тестов
+      console.log('🧹 Очистка данных перед тестами...');
+      try {
+        const clearResponse = await fetch(`${baseURL}/api/todos`, {
+          method: 'DELETE'
+        });
+        if (clearResponse.ok) {
+          console.log('✅ Данные очищены успешно');
+        } else {
+          console.log('⚠️  Не удалось очистить данные, но продолжаем тесты');
+        }
+      } catch (clearError) {
+        console.log('⚠️  Ошибка при очистке данных:', clearError);
+      }
     } else {
       console.log('⚠️  Сервер отвечает с ошибкой, но продолжаем тесты');
     }

@@ -8,8 +8,8 @@ test.describe('TODO Application UI Tests', () => {
   const runId = Date.now();
   
     test.beforeEach(async ({ page, request }) => {
-      // Ensure clean state (test environment exposes /api/test/clear)
-      await request.delete('/api/test/clear');
+      // Ensure clean state
+      await request.delete('/api/todos');
       apiHelper = new TodoApiHelper(request);
       todoPage = new TodoPage(page);
       await todoPage.goto();
@@ -183,13 +183,13 @@ test.describe('TODO Application UI Tests', () => {
   test('should handle multiple todos', async ({ page }) => {
   const todos = ['Первая задача', 'Вторая задача', 'Третья задача'].map(t => `${t} ${runId}`);
     
-    // Добавляем несколько задач
-    for (const todo of todos) {
-      await todoPage.addTodo(todo);
-      await page.waitForTimeout(200);
+    // Добавляем несколько задач с проверкой после каждого добавления
+    for (let i = 0; i < todos.length; i++) {
+      await todoPage.addTodo(todos[i]);
+      // Ждем появления нового элемента
+      await todoPage.waitForTodoCount(i + 1);
     }
     
-    await todoPage.waitForTodoCount(todos.length);
     const todoItems = todoPage.todoItems();
     await expect(todoItems).toHaveCount(todos.length);
     
@@ -250,17 +250,30 @@ test.describe('TODO Application UI Tests', () => {
     // Создаем задачу через API
   const apiTodo = await apiHelper.createTodo(`Задача из API ${runId}`);
     
-    // Перезагружаем страницу
+    // Перезагружаем страницу и ждем загрузки
   await page.reload();
+  await todoPage.waitForReady();
   await todoPage.todoItems().first().waitFor();
     
   const todoItem = todoPage.todoItems().first();
   await expect(todoPage.todoText(todoItem)).toContainText(`Задача из API ${runId}`);
     
+  // Начинаем редактирование
   await todoPage.startEditByIndex(0);
   const editInput = todoPage.editInput();
+  await expect(editInput).toBeVisible();
+  
+  // Очищаем и заполняем новый текст
+  await editInput.clear();
   await editInput.fill(`Измененная через UI задача ${runId}`);
-  await todoPage.saveEditByIndex(0, `Измененная через UI задача ${runId}`);
+  
+  // Сохраняем изменения
+  const item = todoPage.todoItem(0);
+  await todoPage.saveButton(item).click();
+  
+  // Ждем завершения редактирования
+  await expect(editInput).not.toBeVisible();
+  await page.waitForTimeout(1000); // Дождемся отправки запроса на сервер
     
     // Проверяем изменения через API
     const updatedTodo = await apiHelper.getTodoByUuid(apiTodo.uuid);
@@ -268,8 +281,8 @@ test.describe('TODO Application UI Tests', () => {
     expect(updatedTodo.completed).toBe(false);
     
     // Отмечаем как выполненную через UI
-    await todoItem.locator('input[type="checkbox"]').click();
-    await page.waitForTimeout(500);
+    await todoItem.locator('input[type="checkbox"], .todo-checkbox').click();
+    await page.waitForTimeout(1000); // Дождемся отправки запроса на сервер
     
     // Проверяем изменения через API
     const completedTodo = await apiHelper.getTodoByUuid(apiTodo.uuid);

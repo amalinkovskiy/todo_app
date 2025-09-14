@@ -45,4 +45,7 @@ router.delete('/:uuid',
   todoController.deleteTodo
 );
 
+// DELETE all todos (for testing purposes)
+router.delete('/', todoController.clearAllTodos);
+
 export default router;

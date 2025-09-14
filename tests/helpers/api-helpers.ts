@@ -139,11 +139,15 @@ export class TodoApiHelper {
   }
 
   /**
-   * Очищает все задачи через тестовый эндпоинт
+   * Очищает все задачи через API
    */
   async clearAllTodos(): Promise<boolean> {
-    // In production /api/test/clear doesn't exist; ignore failure
-    const response = await this.request.delete('/api/test/clear');
-    return response.status() === 204;
+    try {
+      const response = await this.request.delete('/api/todos');
+      return response.status() === 200;
+    } catch (error) {
+      console.warn('Failed to clear todos:', error);
+      return false;
+    }
   }
 }

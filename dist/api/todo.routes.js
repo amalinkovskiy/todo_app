@@ -19,5 +19,7 @@ router.put('/:uuid', (0, todo_validator_1.validateParams)(todo_validator_1.todoP
 router.patch('/:uuid', (0, todo_validator_1.validateParams)(todo_validator_1.todoParamsSchema), (0, todo_validator_1.validateBody)(todo_validator_1.updateTodoSchema), todo_controller_1.default.updateTodo);
 // DELETE todo by uuid
 router.delete('/:uuid', (0, todo_validator_1.validateParams)(todo_validator_1.todoParamsSchema), todo_controller_1.default.deleteTodo);
+// DELETE all todos (for testing purposes)
+router.delete('/', todo_controller_1.default.clearAllTodos);
 exports.default = router;
 //# sourceMappingURL=todo.routes.js.map

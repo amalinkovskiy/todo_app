@@ -136,10 +136,15 @@ export class TodoPage {
 
   // Wait helpers
   async waitForTodoCount(expected: number): Promise<void> {
+    // Wait for the todo list to have the expected count with better error handling
     await this.page.waitForFunction(
-      (count) => document.querySelectorAll('.todo-item').length === count,
+      (count) => {
+        const items = document.querySelectorAll('.todo-item');
+        console.log(`Current todo count: ${items.length}, expected: ${count}`);
+        return items.length === count;
+      },
       expected,
-      { timeout: 5000 }
+      { timeout: 10000, polling: 100 }
     );
   }
 

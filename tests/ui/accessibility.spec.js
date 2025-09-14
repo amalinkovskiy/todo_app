@@ -5,7 +5,7 @@ test.describe('TODO Application Accessibility Tests', () => {
   const runId = Date.now();
 
     test.beforeEach(async ({ page, request }) => {
-      await request.delete('/api/test/clear');
+      await request.delete('/api/todos');
       const todoPage = new TodoPage(page);
       await todoPage.goto();
     });
