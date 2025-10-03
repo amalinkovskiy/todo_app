@@ -12,7 +12,7 @@ class TodoApp {
         this.todoInput = document.getElementById('todoInput');
         this.addBtn = document.getElementById('addBtn');
         this.todosList = document.getElementById('todosList');
-        // Элементы модального окна
+        // Modal dialog elements
         this.deleteModal = document.getElementById('deleteModal');
         this.modalTaskName = document.getElementById('modalTaskName');
         this.confirmDeleteBtn = document.getElementById('confirmDelete');
@@ -25,16 +25,16 @@ class TodoApp {
                 await this.addTodo();
             }
         });
-        // События модального окна
+        // Modal dialog events
         this.confirmDeleteBtn.addEventListener('click', async () => await this.confirmDelete());
         this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
-        // Закрытие модального окна при клике вне его
+        // Close modal on outside click
         this.deleteModal.addEventListener('click', (e) => {
             if (e.target === this.deleteModal) {
                 this.closeDeleteModal();
             }
         });
-        // Закрытие модального окна при нажатии Escape
+        // Close modal on Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.deleteModal.style.display === 'block') {
                 this.closeDeleteModal();
@@ -181,7 +181,7 @@ class TodoApp {
     renderTodos() {
         if (this.todos.length === 0) {
             this.todosList.innerHTML =
-                '<li class="empty-state">Задач пока нет. Добавьте первую!</li>';
+                '<li class="empty-state">No tasks yet. Add your first one!</li>';
             return;
         }
         this.todosList.innerHTML = this.todos
@@ -200,8 +200,8 @@ class TodoApp {
         <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} data-uuid="${todo.uuid}">
         <span class="todo-text">${this.escapeHtml(todo.text)}</span>
         <div class="todo-actions">
-          <button class="edit-btn" data-uuid="${todo.uuid}">Изменить</button>
-          <button class="delete-btn" data-uuid="${todo.uuid}">Удалить</button>
+          <button class="edit-btn" data-uuid="${todo.uuid}">Edit</button>
+          <button class="delete-btn" data-uuid="${todo.uuid}">Delete</button>
         </div>
       </li>
     `;
@@ -212,14 +212,14 @@ class TodoApp {
         <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} data-uuid="${todo.uuid}">
         <input type="text" class="edit-input" value="${this.escapeHtml(todo.text)}" data-uuid="${todo.uuid}">
         <div class="todo-actions">
-          <button class="save-btn" data-uuid="${todo.uuid}">Сохранить</button>
-          <button class="cancel-btn" data-uuid="${todo.uuid}">Отмена</button>
+          <button class="save-btn" data-uuid="${todo.uuid}">Save</button>
+          <button class="cancel-btn" data-uuid="${todo.uuid}">Cancel</button>
         </div>
       </li>
     `;
     }
     bindTodoEvents() {
-        // Чекбоксы
+        // Checkboxes
         document.querySelectorAll('.todo-checkbox').forEach((checkbox) => {
             checkbox.addEventListener('change', async (e) => {
                 const target = e.target;
@@ -228,7 +228,7 @@ class TodoApp {
                     await this.toggleTodo(uuid);
             });
         });
-        // Кнопки редактирования
+        // Edit buttons
         document.querySelectorAll('.edit-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 const target = e.target;
@@ -237,7 +237,7 @@ class TodoApp {
                     this.startEdit(uuid);
             });
         });
-        // Кнопки удаления
+        // Delete buttons
         document.querySelectorAll('.delete-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 const target = e.target;
@@ -246,7 +246,7 @@ class TodoApp {
                     this.showDeleteModal(uuid);
             });
         });
-        // Кнопки сохранения
+        // Save buttons
         document.querySelectorAll('.save-btn').forEach((btn) => {
             btn.addEventListener('click', async (e) => {
                 const target = e.target;
@@ -256,13 +256,13 @@ class TodoApp {
                     await this.saveEdit(uuid, input.value);
             });
         });
-        // Кнопки отмены
+        // Cancel buttons
         document.querySelectorAll('.cancel-btn').forEach((btn) => {
             btn.addEventListener('click', () => {
                 this.cancelEdit();
             });
         });
-        // Enter в поле редактирования
+        // Enter key in edit field
         document.querySelectorAll('.edit-input').forEach((input) => {
             input.addEventListener('keypress', async (e) => {
                 const keyEvent = e;
@@ -273,7 +273,7 @@ class TodoApp {
                         await this.saveEdit(uuid, target.value);
                 }
             });
-            // Escape для отмены редактирования
+            // Escape key to cancel editing
             input.addEventListener('keydown', (e) => {
                 const keyEvent = e;
                 if (keyEvent.key === 'Escape') {
@@ -283,9 +283,9 @@ class TodoApp {
         });
     }
     showError(message) {
-        // Простое отображение ошибки. В будущем можно сделать красивые уведомления
+        // Simple error display. Could be enhanced with beautiful notifications in the future
         console.error(message);
-        alert(`Ошибка: ${message}`);
+        alert(`Error: ${message}`);
     }
     escapeHtml(text) {
         const div = document.createElement('div');
@@ -293,7 +293,7 @@ class TodoApp {
         return div.innerHTML;
     }
 }
-// Инициализация приложения
+// Initialize application
 document.addEventListener('DOMContentLoaded', () => {
     new TodoApp();
 });

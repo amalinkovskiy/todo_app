@@ -19,8 +19,8 @@ test.describe('TODO Application Responsive Tests', () => {
     await expect(todoPage.input).toBeVisible();
     await expect(todoPage.addButton).toBeVisible();
     
-    // Добавляем задачу на мобильном
-  const todoText = `Мобильная задача ${runId}`;
+    // Add todo on mobile
+  const todoText = `Mobile task ${runId}`;
     await todoPage.addTodo(todoText);
     
     // Проверяем, что задача отображается корректно
@@ -36,8 +36,8 @@ test.describe('TODO Application Responsive Tests', () => {
     await todoPage.goto();
     await todoPage.waitForReady();
     
-    // Добавляем несколько задач для проверки отображения
-  const todos = ['Планшет задача 1', 'Планшет задача 2'].map(t => `${t} ${runId}`);
+    // Add several tasks to check display
+  const todos = ['Tablet task 1', 'Tablet task 2'].map(t => `${t} ${runId}`);
     
     for (const todo of todos) {
       await todoPage.addTodo(todo);
@@ -63,8 +63,8 @@ test.describe('TODO Application Responsive Tests', () => {
     await expect(page.locator('.container')).toBeVisible();
     await expect(todoPage.title).toContainText('TODO List');
     
-    // Тестируем функциональность на большом экране
-  await todoPage.addTodo(`Десктопная задача ${runId}`);
+    // Test functionality on large screen
+  await todoPage.addTodo(`Desktop task ${runId}`);
     
     const todoItem = todoPage.todoItems().first();
     await expect(todoItem).toBeVisible();

@@ -30,7 +30,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should add a new todo', async ({ page }) => {
-  const todoText = `Купить молоко ${runId}`;
+  const todoText = `Buy milk ${runId}`;
     
   // Добавляем задачу через Page Object
   await todoPage.addTodo(todoText);
@@ -46,7 +46,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should add todo with Enter key', async ({ page }) => {
-  const todoText = `Сделать зарядку ${runId}`;
+  const todoText = `Do exercise ${runId}`;
     
     // Вводим текст и нажимаем Enter
   await todoPage.addTodoWithEnter(todoText);
@@ -65,7 +65,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should toggle todo completion', async ({ page }) => {
-  const todoText = `Прочитать книгу ${runId}`;
+  const todoText = `Read book ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(todoText);
@@ -90,8 +90,8 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should edit todo text', async ({ page }) => {
-  const originalText = `Оригинальная задача ${runId}`;
-  const editedText = `Отредактированная задача ${runId}`;
+  const originalText = `Original task ${runId}`;
+  const editedText = `Edited task ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(originalText);
@@ -112,8 +112,8 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should cancel edit with Escape', async ({ page }) => {
-  const originalText = `Неизменная задача ${runId}`;
-  const tempText = `Временный текст ${runId}`;
+  const originalText = `Unchanged task ${runId}`;
+  const tempText = `Temporary text ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(originalText);
@@ -133,7 +133,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should delete todo with confirmation modal', async ({ page }) => {
-  const todoText = `Задача для удаления ${runId}`;
+  const todoText = `Task to delete ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(todoText);
@@ -152,7 +152,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should cancel todo deletion', async ({ page }) => {
-  const todoText = `Задача остается ${runId}`;
+  const todoText = `Task remains ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(todoText);
@@ -169,7 +169,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should close modal by clicking outside', async ({ page }) => {
-  const todoText = `Тестовая задача ${runId}`;
+  const todoText = `Test task ${runId}`;
     
     // Добавляем задачу
   await todoPage.addTodo(todoText);
@@ -181,7 +181,7 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should handle multiple todos', async ({ page }) => {
-  const todos = ['Первая задача', 'Вторая задача', 'Третья задача'].map(t => `${t} ${runId}`);
+  const todos = ['First task', 'Second task', 'Third task'].map(t => `${t} ${runId}`);
     
     // Добавляем несколько задач с проверкой после каждого добавления
     for (let i = 0; i < todos.length; i++) {
@@ -211,9 +211,9 @@ test.describe('TODO Application UI Tests', () => {
   test('should display pre-created todos from API', async ({ page }) => {
     // Создаем задачи через API перед загрузкой страницы
     const texts = [
-      `API созданная задача 1 ${runId}`,
-      `API созданная задача 2 ${runId}`,
-      `API созданная задача 3 ${runId}`
+      `API created task 1 ${runId}`,
+      `API created task 2 ${runId}`,
+      `API created task 3 ${runId}`
     ];
     await apiHelper.createTodo(texts[0]);
     await apiHelper.createTodo(texts[1], true); // completed true
@@ -247,8 +247,8 @@ test.describe('TODO Application UI Tests', () => {
   });
 
   test('should integrate UI actions with API state', async ({ page }) => {
-    // Создаем задачу через API
-  const apiTodo = await apiHelper.createTodo(`Задача из API ${runId}`);
+    // Create todo via API
+  const apiTodo = await apiHelper.createTodo(`Task from API ${runId}`);
     
     // Перезагружаем страницу и ждем загрузки
   await page.reload();
@@ -256,35 +256,35 @@ test.describe('TODO Application UI Tests', () => {
   await todoPage.todoItems().first().waitFor();
     
   const todoItem = todoPage.todoItems().first();
-  await expect(todoPage.todoText(todoItem)).toContainText(`Задача из API ${runId}`);
+  await expect(todoPage.todoText(todoItem)).toContainText(`Task from API ${runId}`);
     
-  // Начинаем редактирование
+  // Start editing
   await todoPage.startEditByIndex(0);
   const editInput = todoPage.editInput();
   await expect(editInput).toBeVisible();
   
-  // Очищаем и заполняем новый текст
+  // Clear and fill new text
   await editInput.clear();
-  await editInput.fill(`Измененная через UI задача ${runId}`);
+  await editInput.fill(`Changed via UI task ${runId}`);
   
-  // Сохраняем изменения
+  // Save changes
   const item = todoPage.todoItem(0);
   await todoPage.saveButton(item).click();
   
-  // Ждем завершения редактирования
+  // Wait for editing to complete
   await expect(editInput).not.toBeVisible();
-  await page.waitForTimeout(1000); // Дождемся отправки запроса на сервер
+  await page.waitForTimeout(1000); // Wait for request to be sent to server
     
-    // Проверяем изменения через API
+    // Check changes via API
     const updatedTodo = await apiHelper.getTodoByUuid(apiTodo.uuid);
-  expect(updatedTodo.text).toBe(`Измененная через UI задача ${runId}`);
+  expect(updatedTodo.text).toBe(`Changed via UI task ${runId}`);
     expect(updatedTodo.completed).toBe(false);
     
-    // Отмечаем как выполненную через UI
+    // Mark as completed via UI
     await todoItem.locator('input[type="checkbox"], .todo-checkbox').click();
-    await page.waitForTimeout(1000); // Дождемся отправки запроса на сервер
+    await page.waitForTimeout(1000); // Wait for request to be sent to server
     
-    // Проверяем изменения через API
+    // Check changes via API
     const completedTodo = await apiHelper.getTodoByUuid(apiTodo.uuid);
     expect(completedTodo.completed).toBe(true);
   });
