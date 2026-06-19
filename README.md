@@ -1,15 +1,16 @@
 # TODO App
 
-A small TypeScript TODO application used as a practical playground for API/UI testing, Playwright MCP, GitHub Actions, and living-requirements verification.
+A small TypeScript TODO application used as a practical playground for API/UI testing, Playwright MCP, GitHub Actions, living-requirements verification, and stage/prod deployment hardening.
 
 ## Current State
 
-The project is no longer a classic JavaScript/EJS app. The current implementation is:
+The current implementation is:
 
 - **Backend:** Node.js + Express + TypeScript
 - **Frontend:** static HTML/CSS + TypeScript compiled into `public/script.js`
 - **Validation:** Zod schemas and Express validation middleware
-- **Storage:** PostgreSQL when a database URL is configured; JSON file fallback in local/test mode; in-memory fallback for serverless without a database URL
+- **Storage:** PostgreSQL when a database URL is configured; JSON file fallback in local/test mode; in-memory fallback only when explicitly allowed in unguarded serverless mode
+- **Environments:** explicit `stage`/`prod` guards through environment variables
 - **Testing:** Playwright API and UI tests
 - **CI:** GitHub Actions on `ubuntu-latest`
 - **Requirements traceability:** markdown feature files mapped to executed Playwright tests through `scripts/verify-test-coverage.ts`
@@ -23,6 +24,7 @@ The project is no longer a classic JavaScript/EJS app. The current implementatio
 - Delete a TODO item with confirmation modal
 - REST API for TODO CRUD operations
 - Health and diagnostic endpoints
+- PostgreSQL migration and smoke-check scripts
 - Playwright API/UI test coverage
 - Playwright MCP available for assisted test generation
 
@@ -45,10 +47,16 @@ Express server
 
 ### Backend
 
-Main entry point:
+Main local entry point:
 
 ```text
 src/server.ts
+```
+
+Vercel serverless entry point:
+
+```text
+api/index.ts
 ```
 
 Responsibilities:
@@ -57,7 +65,7 @@ Responsibilities:
 - Configure Express middleware
 - Serve static frontend assets from `public/`
 - Register API routes under `/api/todos`
-- Register test helper routes under `/api/test`
+- Register test helper routes under `/api/test` only when `ENABLE_TEST_ROUTES=true`
 - Expose `/health` and `/diag`
 - Serve `public/index.html` as SPA fallback for non-API routes
 
@@ -79,7 +87,25 @@ Available TODO endpoints:
 | `PUT` | `/api/todos/:uuid` | Full TODO update |
 | `PATCH` | `/api/todos/:uuid` | Partial TODO update |
 | `DELETE` | `/api/todos/:uuid` | Delete TODO |
-| `DELETE` | `/api/todos` | Clear all TODOs for tests |
+| `DELETE` | `/api/todos` | Clear all TODOs through the main API controller |
+
+Test helper route:
+
+```text
+/api/test/*
+```
+
+This route is mounted only when:
+
+```text
+ENABLE_TEST_ROUTES=true
+```
+
+The destructive test cleanup endpoint requires:
+
+```text
+ALLOW_TEST_DATA_RESET=true
+```
 
 ### Validation
 
@@ -114,11 +140,12 @@ Current behavior:
 | Runtime condition | Storage mode |
 |---|---|
 | `POSTGRES_URL` or `DATABASE_URL` exists | PostgreSQL |
-| `NODE_ENV=test` | JSON file storage fallback |
-| No database URL in normal local mode | JSON file storage fallback |
-| Vercel/serverless without DB URL | in-memory fallback |
+| `REQUIRE_DATABASE=true` and no DB URL exists | no fallback; `/health` is degraded |
+| `NODE_ENV=test` without required DB | JSON file storage fallback |
+| no database URL in normal local mode | JSON file storage fallback |
+| Vercel/serverless without DB URL and DB not required | in-memory fallback |
 
-Important: the current Playwright test path runs with `NODE_ENV=test`, so it does **not** require PostgreSQL. The database helper scripts are still useful for local PostgreSQL experiments, but the CI test path is intentionally lightweight and self-contained.
+Important: stage and production should set `REQUIRE_DATABASE=true`, so they never silently use file or memory storage.
 
 ### Frontend
 
@@ -141,6 +168,44 @@ public/index.html
 ```
 
 The frontend calls `/api/todos` directly and renders the TODO list in the browser.
+
+## Environment Model
+
+The intended deployment model is documented in:
+
+```text
+docs/environments.md
+```
+
+### Stage
+
+Stage receives new changes first and is safe for automated test cleanup.
+
+Recommended variables:
+
+```text
+APP_ENV=stage
+DATABASE_URL=<stage-postgres-url>
+REQUIRE_DATABASE=true
+ENABLE_TEST_ROUTES=true
+ALLOW_TEST_DATA_RESET=true
+ALLOW_MEMORY_FALLBACK=false
+```
+
+### Production
+
+Production receives only validated changes and must never run destructive test cleanup.
+
+Recommended variables:
+
+```text
+APP_ENV=prod
+DATABASE_URL=<prod-postgres-url>
+REQUIRE_DATABASE=true
+ENABLE_TEST_ROUTES=false
+ALLOW_TEST_DATA_RESET=false
+ALLOW_MEMORY_FALLBACK=false
+```
 
 ## Requirements Traceability
 
@@ -279,7 +344,9 @@ npm run test:ci
 
 The workflow also uploads the Playwright HTML report as an artifact when the run completes.
 
-## Database Helper
+## Database Lifecycle
+
+### Local PostgreSQL container helper
 
 The project includes a cross-platform Node.js helper for local PostgreSQL container management:
 
@@ -313,6 +380,30 @@ CONTAINER_RUNTIME=docker npm run db:setup
 CONTAINER_RUNTIME=podman npm run db:setup
 ```
 
+### Migrations
+
+SQL migrations live in:
+
+```text
+db/migrations/*.sql
+```
+
+Run migrations against the configured `DATABASE_URL` or `POSTGRES_URL`:
+
+```bash
+npm run db:migrate
+```
+
+### Database smoke check
+
+After migrations, verify the real PostgreSQL path:
+
+```bash
+npm run db:smoke
+```
+
+The smoke check verifies connection, table existence, insert, read, update, and delete using a temporary row.
+
 ## Playwright MCP
 
 Playwright MCP is available as an assisted workflow for generating and exploring tests.
@@ -339,8 +430,12 @@ Recommended workflow:
 │       └── ci.yml
 ├── data/
 │   └── todos.json
+├── db/
+│   └── migrations/
+│       └── 001_create_todos.sql
 ├── docs/
 │   ├── database-setup.md
+│   ├── environments.md
 │   └── playwright-mcp-guide.md
 ├── features/
 │   ├── 001-todo-crud.feature.md
@@ -353,6 +448,8 @@ Recommended workflow:
 │   ├── script.js.map
 │   └── styles.css
 ├── scripts/
+│   ├── db-migrate.ts
+│   ├── db-smoke.ts
 │   ├── db-test.js
 │   └── verify-test-coverage.ts
 ├── src/
@@ -384,10 +481,13 @@ Recommended workflow:
 │       │   └── todo.page.ts
 │       ├── responsive.spec.js
 │       └── todo.spec.js
+├── api/
+│   └── index.ts
 ├── package.json
 ├── package-lock.json
 ├── playwright.config.ts
 ├── tsconfig.json
+├── vercel.json
 └── README.md
 ```
 
@@ -399,7 +499,7 @@ Recommended workflow:
 GET /health
 ```
 
-Possible healthy PostgreSQL response:
+Expected healthy stage/production response:
 
 ```json
 {
@@ -407,11 +507,12 @@ Possible healthy PostgreSQL response:
   "db": true,
   "storage": "postgres",
   "fallbackActivated": false,
+  "appEnv": "stage",
   "timestamp": "2026-01-01T00:00:00.000Z"
 }
 ```
 
-Possible fallback response:
+Fallback/degraded response:
 
 ```json
 {
@@ -419,6 +520,7 @@ Possible fallback response:
   "db": false,
   "storage": "file",
   "fallbackActivated": false,
+  "appEnv": "local",
   "timestamp": "2026-01-01T00:00:00.000Z"
 }
 ```
@@ -429,7 +531,7 @@ Possible fallback response:
 GET /diag
 ```
 
-Returns non-sensitive runtime diagnostics such as `NODE_ENV`, whether Vercel is detected, and whether database URL variables are present.
+Returns non-sensitive runtime diagnostics such as `APP_ENV`, `NODE_ENV`, whether Vercel is detected, whether database URL variables are present, and whether test routes/data reset are enabled.
 
 ## Development Notes
 
@@ -437,4 +539,6 @@ Returns non-sensitive runtime diagnostics such as `NODE_ENV`, whether Vercel is 
 - Do not reintroduce PowerShell-only project scripts.
 - Keep README aligned with the actual TypeScript structure.
 - Keep feature files mapped to real Playwright tests.
+- Stage can run destructive test cleanup only when explicitly enabled.
+- Production must never enable test routes or destructive data reset.
 - Prefer small PRs with one clear purpose.
