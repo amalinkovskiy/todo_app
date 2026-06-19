@@ -16,6 +16,7 @@
     "test:ci": "npm run build && npx playwright test --workers=1 && npm run verify:requirements",
     "test:api": "npx playwright test --project=\"API Tests\" --workers=1",
     "test:ui": "npx playwright test --project=\"UI Tests\" --workers=1",
+    "test:stage": "npx playwright test --config=playwright.stage.config.ts",
     "test:headed": "npx playwright test --project=\"UI Tests\" --headed",
     "test:debug": "npx playwright test --project=\"UI Tests\" --debug",
     "test:report": "npx playwright show-report",
