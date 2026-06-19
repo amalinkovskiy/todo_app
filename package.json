@@ -26,6 +26,8 @@
     "db:restart": "node scripts/db-test.js restart",
     "db:status": "node scripts/db-test.js status",
     "db:logs": "node scripts/db-test.js logs",
+    "db:migrate": "npx ts-node scripts/db-migrate.ts",
+    "db:smoke": "npx ts-node scripts/db-smoke.ts",
     "mcp:generate": "npx playwright mcp",
     "mcp:help": "npx playwright mcp --help"
   },
