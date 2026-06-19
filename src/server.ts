@@ -12,6 +12,7 @@ import testRoutes from './api/test.routes';
 import { errorHandler, notFound } from './middlewares/errorHandler';
 
 const app = express();
+const enableTestRoutes = process.env.ENABLE_TEST_ROUTES === 'true';
 
 // Middleware
 app.use(cors());
@@ -34,7 +35,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Routes
 app.use('/api/todos', todoRoutes);
-app.use('/api/test', testRoutes);
+
+if (enableTestRoutes) {
+  app.use('/api/test', testRoutes);
+}
 
 // Health check
 app.get('/health', async (req: Request, res: Response) => {
@@ -43,9 +47,10 @@ app.get('/health', async (req: Request, res: Response) => {
     const result = await todoService.healthCheck();
     const statusCode = result.db ? 200 : 503;
     // Add diagnostic headers (non-sensitive)
+    res.setHeader('X-App-Env', process.env.APP_ENV || 'local');
     res.setHeader('X-Storage-Mode', result.storage || 'unknown');
     res.setHeader('X-DB-Fallback', String(result.fallbackActivated || false));
-    if (result.lastError) res.setHeader('X-Last-Db-Error', encodeURIComponent(result.lastError.slice(0,120)));
+    if (result.lastError) res.setHeader('X-Last-Db-Error', encodeURIComponent(result.lastError.slice(0, 120)));
     if (process.env.DEBUG_HEALTH === '1') {
       // Expose which connection env was detected (not the value)
       res.setHeader('X-Conn-Env', process.env.POSTGRES_URL ? 'POSTGRES_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'none'));
@@ -55,6 +60,7 @@ app.get('/health', async (req: Request, res: Response) => {
       db: result.db,
       storage: result.storage,
       fallbackActivated: result.fallbackActivated,
+      appEnv: process.env.APP_ENV || 'local',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -71,10 +77,14 @@ app.get('/diag', (req: Request, res: Response) => {
   res.json({
     status: 'diag-ok',
     env: {
+      appEnv: process.env.APP_ENV || 'local',
       NODE_ENV: process.env.NODE_ENV,
       VERCEL: !!process.env.VERCEL,
       hasPostgresUrl: !!process.env.POSTGRES_URL,
-      hasDatabaseUrl: !!process.env.DATABASE_URL
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      requireDatabase: process.env.REQUIRE_DATABASE === 'true',
+      enableTestRoutes,
+      allowTestDataReset: process.env.ALLOW_TEST_DATA_RESET === 'true'
     },
     timestamp: new Date().toISOString()
   });
@@ -99,6 +109,8 @@ const port = config.port;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
   console.log(`Environment: ${config.nodeEnv}`);
+  console.log(`App environment: ${process.env.APP_ENV || 'local'}`);
+  console.log(`Test routes enabled: ${enableTestRoutes}`);
 });
 
 export default app;
