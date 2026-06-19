@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import todoController from '../controllers/todo.controller';
 
 const router = express.Router();
@@ -15,7 +15,7 @@ router.get('/status', (req: Request, res: Response) => {
 });
 
 // Destructive route for stage/test only. Never enable this in production.
-router.delete('/clear', (req: Request, res: Response, next) => {
+router.delete('/clear', (req: Request, res: Response, next: NextFunction) => {
   if (!allowTestDataReset) {
     res.status(403).json({
       status: 'error',
