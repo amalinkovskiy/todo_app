@@ -66,8 +66,12 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     env: {
       ...process.env,
+      APP_ENV: 'test',
       NODE_ENV: 'test',
-      PORT: '3000'
+      PORT: '3000',
+      ENABLE_TEST_ROUTES: 'true',
+      ALLOW_TEST_DATA_RESET: 'true',
+      REQUIRE_DATABASE: 'false'
     },
     timeout: 120 * 1000,
   },
