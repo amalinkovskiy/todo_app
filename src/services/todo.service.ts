@@ -1,4 +1,4 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -54,11 +54,20 @@ class TodoService {
     if (this.initialized) return;
 
     const isServerless = !!process.env.VERCEL; // Vercel sets this env variable
+    const requireDatabase = this.isDatabaseRequired();
     // Support both POSTGRES_URL and DATABASE_URL (common on hosts)
     const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
     const noPostgres = !connectionString;
-    const useMemoryDb = isServerless && noPostgres; // serverless + no DB URL => in-memory only
-    const useFileDb = !useMemoryDb && (noPostgres || process.env.NODE_ENV === 'test');
+
+    if (requireDatabase && noPostgres) {
+      this.lastDbError = 'REQUIRE_DATABASE=true but neither POSTGRES_URL nor DATABASE_URL is configured';
+      this.initialized = true;
+      console.error(`[storage] ${this.lastDbError}`);
+      return;
+    }
+
+    const useMemoryDb = !requireDatabase && isServerless && noPostgres; // serverless + no DB URL => in-memory only
+    const useFileDb = !requireDatabase && !useMemoryDb && (noPostgres || process.env.NODE_ENV === 'test');
 
     if (useMemoryDb) {
       // Pure in-memory store (safe for serverless, non-persistent)
@@ -108,13 +117,14 @@ class TodoService {
       this.lastDbError = error instanceof Error ? error.message : String(error);
       console.error('[storage] PostgreSQL connection failed:', this.lastDbError);
       
-      // Graceful fallback to in-memory if allowed
-      if (process.env.ALLOW_MEMORY_FALLBACK !== 'false') {
+      // Graceful fallback is allowed only outside guarded environments.
+      if (!requireDatabase && process.env.ALLOW_MEMORY_FALLBACK !== 'false') {
         this.memory = { todos: [] };
         this.memoryMode = true;
         this.fallbackActivated = true;
-        this.initialized = true;
       }
+
+      this.initialized = true;
     }
   }
 
@@ -132,6 +142,7 @@ class TodoService {
         .slice()
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
+    this.assertStorageAvailable();
     try {
       const client = await this.pool!.connect();
       const result = await client.query<TodoRow>(`
@@ -159,6 +170,7 @@ class TodoService {
       const todo = this.memory.todos.find(t => t.uuid === uuid);
       return todo || null;
     }
+    this.assertStorageAvailable();
     try {
       const client = await this.pool!.connect();
       const result = await client.query<TodoRow>(`
@@ -198,6 +210,7 @@ class TodoService {
       this.memory.todos.push(todo);
       return todo;
     }
+    this.assertStorageAvailable();
     try {
       const client = await this.pool!.connect();
       const result = await client.query<TodoRow>(`
@@ -241,6 +254,7 @@ class TodoService {
       Object.assign(existing, { text, completed, updatedAt: now });
       return existing;
     }
+    this.assertStorageAvailable();
     try {
       const client = await this.pool!.connect();
       const result = await client.query<TodoRow>(`
@@ -281,6 +295,7 @@ class TodoService {
       const after = this.memory.todos.length;
       return after < before;
     }
+    this.assertStorageAvailable();
     try {
       const client = await this.pool!.connect();
       const result = await client.query(`
@@ -306,6 +321,7 @@ class TodoService {
       this.memory.todos = [];
       return;
     }
+    this.assertStorageAvailable();
     try {
       const client = await this.pool!.connect();
       await client.query('DELETE FROM todos');
@@ -332,12 +348,22 @@ class TodoService {
       return {
         db: false,
         storage: 'file',
-        fallbackActivated: this.fallbackActivated
+        fallbackActivated: this.fallbackActivated,
+        lastError: this.lastDbError || undefined
+      };
+    }
+
+    if (!this.pool) {
+      return {
+        db: false,
+        storage: 'postgres',
+        fallbackActivated: this.fallbackActivated,
+        lastError: this.lastDbError || 'PostgreSQL pool is not initialized'
       };
     }
     
     try {
-      const client = await this.pool!.connect();
+      const client = await this.pool.connect();
       await client.query('SELECT 1');
       client.release();
       return {
@@ -354,6 +380,17 @@ class TodoService {
         lastError: errorMessage
       };
     }
+  }
+
+  private isDatabaseRequired(): boolean {
+    return process.env.REQUIRE_DATABASE === 'true';
+  }
+
+  private assertStorageAvailable(): void {
+    if (this.fileMode || this.memoryMode || this.pool) return;
+
+    const reason = this.lastDbError || 'No active storage mode is available';
+    throw new Error(`Database is required but unavailable: ${reason}`);
   }
 
   private mapRowToTodo(row: TodoRow): Todo {
