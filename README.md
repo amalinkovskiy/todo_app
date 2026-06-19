@@ -21,7 +21,8 @@
 - ✅ Data validation using Joi
 - ✅ Test environment setup (`.env.test`)
 - ✅ Responsive UI
-- ✅ Podman containerization for local development
+- ✅ Podman/Docker containerization for local development
+- ✅ Ubuntu-based GitHub Actions CI
 - ✅ Serverless-friendly design (Vercel rewrites to single entry)
 
 ### 🧪 Testing
@@ -57,10 +58,12 @@ npm install
 
 ### 🗄️ Database Setup
 
-**Prerequisites**: Install [Podman](https://podman.io/getting-started/installation) for containerized PostgreSQL.
+**Prerequisites**: Install [Podman](https://podman.io/getting-started/installation) or Docker for containerized PostgreSQL.
+
+The database helper is a cross-platform Node.js script. It prefers Podman when available and falls back to Docker.
 
 #### Quick Setup
-```powershell
+```bash
 # Start PostgreSQL container
 npm run db:start
 
@@ -75,11 +78,14 @@ npm run db:stop
 ```
 
 #### Manual Setup
-```powershell
-# Create and start PostgreSQL container
-podman run --name postgres-todo-test -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=testpass -e POSTGRES_DB=todo_test -p 5433:5432 -d postgres:15
+```bash
+# Create and start PostgreSQL container with Podman
+podman run --name postgres-test -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=testpass -e POSTGRES_DB=todo_test -p 5433:5432 -d postgres:15
 
-# Initialize test database
+# Or with Docker
+docker run --name postgres-test -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=testpass -e POSTGRES_DB=todo_test -p 5433:5432 -d postgres:15
+
+# Initialize test database helper
 npm run db:setup
 ```
 
@@ -119,13 +125,15 @@ Use this for uptime probes or CI smoke tests.
 # Database Management
 npm run db:start         # Start PostgreSQL container
 npm run db:stop          # Stop PostgreSQL container
+npm run db:restart       # Restart PostgreSQL container
 npm run db:status        # Check database status
 npm run db:logs          # View database logs
 npm run db:setup         # Initialize database
 
 # Test Execution
-npm test                 # Run all API and UI tests (19 API + UI tests)
-npm run test:api         # API tests only (19 tests)
+npm test                 # Run all API and UI tests and verify requirements coverage
+npm run test:ci          # Build, run tests, and verify requirements coverage
+npm run test:api         # API tests only
 npm run test:ui          # UI tests only
 npm run test:headed      # UI tests with browser
 npm run test:debug       # Debug UI tests
@@ -150,7 +158,7 @@ npm run mcp:generate  # Generate tests
 │   ├── database-setup.md   # Database configuration guide
 │   └── playwright-mcp-guide.md
 ├── 📁 scripts/
-│   └── db-test.ps1         # Database management automation
+│   └── db-test.js          # Cross-platform database management automation
 ├── 📁 node_modules/
 ├── 📁 public/
 │   └── css/

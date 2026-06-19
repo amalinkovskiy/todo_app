@@ -34,14 +34,8 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Build application
-        run: npm run build
-
-      - name: Run Playwright tests
-        run: npx playwright test --workers=1
-
-      - name: Verify requirements coverage
-        run: npx ts-node scripts/verify-test-coverage.ts
+      - name: Build and test
+        run: npm run test:ci
 
       - name: Upload Playwright report
         if: always()
