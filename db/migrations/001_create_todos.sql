@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS todos (
+  uuid UUID PRIMARY KEY,
+  text TEXT NOT NULL,
+  completed BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_todos_created_at ON todos(created_at DESC);
