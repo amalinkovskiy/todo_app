@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import todoController from '../controllers/todo.controller';
 import {
   createTodoSchema,
@@ -9,6 +9,7 @@ import {
 } from '../validators/todo.validator';
 
 const router = express.Router();
+const allowTestDataReset = process.env.ALLOW_TEST_DATA_RESET === 'true';
 
 // GET all todos
 router.get('/', todoController.getAllTodos);
@@ -45,7 +46,17 @@ router.delete('/:uuid',
   todoController.deleteTodo
 );
 
-// DELETE all todos (for testing purposes)
-router.delete('/', todoController.clearAllTodos);
+// DELETE all todos. This is destructive and must only be enabled in safe test/stage environments.
+router.delete('/', (req: Request, res: Response, next: NextFunction) => {
+  if (!allowTestDataReset) {
+    res.status(403).json({
+      status: 'error',
+      message: 'Bulk TODO cleanup is disabled. Set ALLOW_TEST_DATA_RESET=true only in safe environments.',
+    });
+    return;
+  }
+
+  return todoController.clearAllTodos(req, res, next);
+});
 
 export default router;
