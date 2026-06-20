@@ -1,8 +1,40 @@
 const { test, expect } = require('@playwright/test');
 
+const STAGE_SMOKE_PREFIX = 'stage-smoke-';
+
+async function cleanupStageSmokeTodos(request) {
+  const listResponse = await request.get('/api/todos');
+
+  if (!listResponse.ok()) {
+    return;
+  }
+
+  const todos = await listResponse.json();
+
+  if (!Array.isArray(todos)) {
+    return;
+  }
+
+  const smokeTodos = todos.filter((todo) =>
+    typeof todo.text === 'string' && todo.text.startsWith(STAGE_SMOKE_PREFIX),
+  );
+
+  await Promise.all(
+    smokeTodos.map((todo) => request.delete(`/api/todos/${todo.uuid}`).catch(() => undefined)),
+  );
+}
+
 test.describe('Stage TODO API smoke', () => {
+  test.beforeEach(async ({ request }) => {
+    await cleanupStageSmokeTodos(request);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupStageSmokeTodos(request);
+  });
+
   test('can create, read, update, and remove one TODO on stage', async ({ request }) => {
-    const uniqueText = `stage-smoke-${Date.now()}`;
+    const uniqueText = `${STAGE_SMOKE_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2)}`;
     let createdUuid;
 
     try {
