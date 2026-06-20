@@ -40,13 +40,26 @@ Checks that stage:
 
 Checks that stage can perform a minimal real API flow:
 
-1. create one TODO;
-2. read the created TODO;
-3. update it;
-4. remove it;
-5. verify it is no longer available.
+1. clean up old smoke-test-owned TODOs with the `stage-smoke-` prefix;
+2. create one TODO with a unique `stage-smoke-...` text value;
+3. read the created TODO;
+4. update it;
+5. remove it;
+6. verify it is no longer available;
+7. clean up any remaining smoke-test-owned TODOs with the `stage-smoke-` prefix.
 
-The test removes only the record it created. It does not perform a bulk cleanup.
+The test only removes records whose text starts with `stage-smoke-`. It does not delete manual stage data and does not perform a full database cleanup.
+
+## Test data policy
+
+Stage data is disposable, but tests must clean up only data they own.
+
+Rules:
+
+- automated smoke tests must create records with the `stage-smoke-` prefix;
+- automated smoke tests may delete only records with the `stage-smoke-` prefix;
+- manual test records such as `task1`, `task2`, or exploratory data must not be removed by automation;
+- production must never allow destructive test cleanup.
 
 ## Required stage environment variables
 
