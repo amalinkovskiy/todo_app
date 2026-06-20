@@ -7,6 +7,10 @@ on:
         description: "Stage branch URL to validate"
         required: true
         default: "https://todo-app-git-stage-amalinkovskiys-projects.vercel.app"
+      source_ref:
+        description: "Git ref to checkout test code from"
+        required: true
+        default: "stage"
 
 jobs:
   smoke:
@@ -21,6 +25,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
