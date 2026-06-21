@@ -12,6 +12,8 @@ jobs:
   build-and-test:
     name: Build and test
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-noble
     timeout-minutes: 20
 
     env:
@@ -31,10 +33,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Install Playwright browser
-        timeout-minutes: 10
-        run: npx playwright install chromium
 
       - name: Build and test
         run: npm run test:ci
